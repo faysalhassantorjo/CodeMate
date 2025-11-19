@@ -10,15 +10,15 @@ services:
       - key: DEBUG
         value: "False"
       - key: REDIS_HOST
-        fromService:
-          name: realtime-redis
-          property: host
+        value: redis-server
       - key: REDIS_PORT
-        fromService:
-          name: realtime-redis
-          property: port
+        value: 6379
+    
+    dependsOn:
+      - redis-server
 
   - type: redis
-    name: realtime-redis
-    plan: free
-    
+    name: redis-server
+    image: redis:latest
+    plan: free 
+    ipAllowList: []

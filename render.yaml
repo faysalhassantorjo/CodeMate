@@ -8,10 +8,12 @@ services:
     envVars:
       - key: REDIS_HOST
         fromService:
+          type: database
           name: redis
           property: host
       - key: REDIS_PORT
         fromService:
+          type: database
           name: redis
           property: port
       - key: DJANGO_SECRET_KEY

@@ -9,9 +9,10 @@ import redis
 
 # Replace with your Redis URL
 # redis_client = redis.Redis.from_url("redis://red-cuj40v0gph6c73fqc0ig:6379/0")
+redis_client = redis.Redis.from_url("redis://red-d4f1dg0gjchc73fj4kb0:6379")
 
 
-redis_client = redis.StrictRedis(host='redis_server', port=6379,db=0)
+# redis_client = redis.StrictRedis(host='redis_server', port=6379,db=0)
 # redis_client = redis.StrictRedis(host='127.0.0.1', port=6379,db=0)
 
 

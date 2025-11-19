@@ -1,27 +1,24 @@
 services:
   - type: web
-    name: codemate-realtime-editor
+    name: realtime-code-editor
     env: docker
     plan: free
-    repo: https://github.com/faysalhassantorjo/CodeMate.git
-    branch: main
+    dockerfilePath: ./Dockerfile
     envVars:
-      - key: REDIS_HOST
-        fromService:
-          type: database
-          name: redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: database
-          name: redis
-          property: port
-      - key: DJANGO_SECRET_KEY
+      - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: REDIS_HOST
+        fromService:
+          name: realtime-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: realtime-redis
+          property: port
 
-databases:
-  - name: redis
+  - type: redis
+    name: realtime-redis
     plan: free
-    ipAllowList: []
+    

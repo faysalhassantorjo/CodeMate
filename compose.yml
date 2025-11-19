@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: django_app
-    # command: daphne -b 0.0.0.0 -p 8000 realtime_code_editor.asgi:application
-    command: python manage.py runserver 0.0.0.0:8000
+    command: daphne -b 0.0.0.0 -p 8000 realtime_code_editor.asgi:application
+    # command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock

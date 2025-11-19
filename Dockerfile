@@ -9,4 +9,5 @@ RUN python manage.py collectstatic --noinput
 EXPOSE 8000
 
 # Run the ASGI application with Daphne
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "realtime_code_editor.asgi:application"]
+# CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "realtime_code_editor.asgi:application"]
+CMD ["sh", "-c", "daphne -b 0.0.0.0 -p $PORT realtime_code_editor.asgi:application"]

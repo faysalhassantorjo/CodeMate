@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Code Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.css">
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/3024-day.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/3024-night.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/darcula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+
+
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/8.1.0/mdb.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor/min/vs/loader.js"></script>
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Lora:ital,wght@0,400..700;1,400..700&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+        rel="stylesheet">
+
+    <!-- <link rel="stylesheet" href="{% static 'css/room.css' %}"> -->
+
+
+
+</head>
+
+<body>
+    <style>
+        body {
+
+            background-color: #121212;
+            color: #f8f8f2;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+            /* font-family: "Lora", serif; */
+            font-family: "JetBrains Mono", serif;
+            /* font-family: "Source Code Pro", serif; */
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        :root {
+            --editor-bg: #1e1e1e;
+            --sidebar-bg: #252526;
+            --header-bg: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #9e9e9e;
+            --accent-color: #4ecdd1;
+            --success-color: #50fa7b;
+            --danger-color: #ff5555;
+            --warning-color: #ffb86c;
+            --border-color: #333;
+            --highlight-color: rgba(78, 205, 209, 0.2);
+        }
+
+        #editor {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .monaco-editor .cursor {
+            background-color: #4ecdd1 !important;
+        }
+
+        .output-header {
+            font-weight: bold;
+            color: #f6f6f6;
+            margin-bottom: 10px;
+        }
+
+        .output {
+            color: #f8f8f2;
+            white-space: pre-wrap;
+            padding: 15px;
+            min-height: 100vh;
+            width: 100%;
+            font-weight: 200;
+            font-size: .9rem;
+            overflow-x: auto;
+        }
+
+        .code-editor {
+            margin: auto;
+        }
+
+        #run-code {
+            background-color: #4ecdd1;
+        }
+
+
+
+        .now-coding {
+            display: block;
+            font-size: .8rem;
+        }
+
+        .j {
+            display: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .not_hidden {
+            display: block;
+        }
+
+        .gif {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+        }
+
+        #input-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #191a29;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(196, 196, 196, 0.205);
+            z-index: 1000;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+
+
+        .icons {
+            border-radius: 6px;
+        }
+
+        .paste-highlight {
+            background-color: rgba(255, 215, 0, 0.3);
+            border: 1px dashed rgba(255, 165, 0, 0.5);
+        }
+
+        #notification {
+            display: none;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        #notification {
+            transition: opacity 0.3s ease;
+        }
+
+        #notification[style*="none"] {
+            display: block !important;
+            opacity: 0;
+        }
+
+        .line-number {
+            color: #6c757d;
+            display: inline-block;
+            width: 2em;
+            margin-left: -2.5em;
+            padding-right: 0.5em;
+            text-align: right;
+            user-select: none;
+            position: relative;
+            left: -1px;
+        }
+
+        /* File styling */
+        .file-list-container {
+            /* padding: 15px; */
+            /* background-color: #1e1e1e; */
+        }
+
+        .sidebar-header {
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        .folder-title {
+            color: #bbbbbb;
+            font-weight: 500;
+        }
+
+
+
+        /* editor icon */
+        .icons {
+            height: 30px;
+            /* consistent height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            background: none;
+            border: none;
+            color: #f8f8f2;
+            font-size: 14px;
+        }
+
+        #theme-selector {
+            height: 30px;
+            font-size: 12px;
+        }
+
+        #theme-selector option {
+            background: none;
+        }
+
+        #file-name {
+            height: 38px;
+        }
+
+        .tool-btn {
+            background: none;
+            border: none;
+            color: #f8f8f2;
+        }
+
+        .status-connected {
+            background-color: #50fa7b;
+            color: #121212;
+        }
+
+
+        /* Member Control */
+        .members {
+            position: absolute;
+            top: 0;
+            right: -500px;
+            /* Hidden off-screen */
+            width: 500px;
+            height: auto;
+            background-color: rgba(0, 0, 0, 0.212);
+            overflow-y: auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            transition: right 1s ease;
+            /* Smooth animation */
+            z-index: 9;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            position: fixed;
+        }
+
+        .members.visible {
+            right: 0;
+            /* Slide into view */
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #333;
+            z-index: 10;
+        }
+
+        .close-btn:hover {
+            color: red;
+        }
+
+        .row>* {
+            padding-right: 0;
+            padding-left: 0;
+        }
+
+        .sidebar {
+            border-left: 1px solid #1e1e1e;
+            border-right: 1px solid #1e1e1e;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: #1e1e1e;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile {
+            background-color: var(--sidebar-bg);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile:hover {
+            background-color: #2a2a2a;
+        }
+
+        .user-profile img {
+            border: 2px solid #4ecdd1;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .user-profile img:hover {
+            transform: scale(1.05);
+        }
+
+        .user-profile .info h6 {
+            font-weight: 500;
+            color: #f8f8f2;
+        }
+
+        .user-profile .info small {
+            font-size: 0.75rem;
+            color: #858585;
+        }
+
+        .sidebar-header {
+            color: #f8f8f2;
+            font-size: 1rem;
+            border-bottom: 1px solid #333;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-header i {
+            color: #4ecdd1;
+            margin-right: 8px;
+        }
+
+        .sidebar-header button {
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-header button:hover {
+            background-color: rgba(78, 205, 209, 0.1) !important;
+            color: #4ecdd1 !important;
+        }
+
+        .file-list {
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .file-item {
+            margin-bottom: 5px;
+        }
+
+        .file-button {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            background-color: transparent;
+            border: none;
+            color: #d4d4d4;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .file-button:hover {
+            background-color: #252526;
+            color: #f8f8f2;
+        }
+
+        .file-button.active {
+            background-color: rgba(78, 205, 209, 0.15);
+            color: #4ecdd1;
+            border-left: 3px solid #4ecdd1;
+        }
+
+        .file-icon {
+            color: #569cd6;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+
+        .file-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.85rem;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 1px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #252526;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            border-radius: 3px;
+        }
+
+        /* Responsive adjustments */
+        /* @media (max-width: 992px) {
+            .sidebar {
+                width: 220px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                z-index: 100;
+                left: -250px;
+            }
+
+            .sidebar.visible {
+                left: 0;
+            }
+        } */
+
+        .file-list {
+            max-height: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            /* Firefox */
+            scrollbar-color: rgba(100, 100, 100, 0.4) transparent;
+            /* Firefox */
+        }
+
+        /* Chrome, Edge, Safari */
+        .file-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .file-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .file-list::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 100, 100, 0.4);
+            border-radius: 4px;
+        }
+
+        /* Socket Status Badge Styles */
+        #socket-status-container {
+            z-index: 1000;
+        }
+
+        #socket-status-text {
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        #socket-status-text.connected {
+            background-color: rgba(80, 250, 123, 0.2);
+            color: #50fa7b;
+            border-color: #50fa7b;
+        }
+
+        #socket-status-text.connecting {
+            background-color: rgba(255, 184, 108, 0.2);
+            color: #ffb86c;
+            border-color: #ffb86c;
+        }
+
+        #socket-status-text.disconnected {
+            background-color: rgba(255, 85, 85, 0.2);
+            color: #ff5555;
+            border-color: #ff5555;
+        }
+
+        #socket-status-text.error {
+            background-color: rgba(255, 85, 85, 0.2);
+            color: #ff5555;
+            border-color: #ff5555;
+        }
+
+        /* User line indicators */
+        .user-line-indicator {
+            position: absolute;
+            left: -30px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #4ecdd1;
+            background-size: cover;
+            background-position: center;
+            z-index: 10;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-line-indicator:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(78, 205, 209, 0.5);
+        }
+
+        .user-line-indicator::after {
+            content: attr(data-username);
+            position: absolute;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(30, 30, 30, 0.9);
+            color: #f8f8f2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .user-line-indicator:hover::after {
+            opacity: 1;
+        }
+
+        .line-user-info {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(78, 205, 209, 0.1);
+            color: #4ecdd1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            border: 1px solid rgba(78, 205, 209, 0.3);
+        }
+
+        /* Active user indicator */
+        .active-user-indicator {
+            background: linear-gradient(90deg, rgba(78, 205, 209, 0.1) 0%, transparent 100%);
+            border-left: 3px solid #4ecdd1;
+        }
+
+        /* User cursor indicator */
+        .user-cursor {
+            position: absolute;
+            width: 2px;
+            height: 18px;
+            background: #4ecdd1;
+            z-index: 5;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        .user-cursor::before {
+            content: attr(data-username);
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.9);
+            color: #f8f8f2;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .user-cursor:hover::before {
+            opacity: 1;
+        }
+
+        /* User activity section */
+        .user-activity {
+            margin-top: 20px;
+        }
+
+        .user-activity .folder-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        #active-coders {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #active-coders::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #active-coders::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #active-coders::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 100, 100, 0.4);
+            border-radius: 2px;
+        }
+    </style>
+
+    <div class="row" style="max-width: 100%; padding-right: 0;">
+
+        <div class="col-lg-2 col-md-2 col-0 sidebar p-2 ">
+            <div class="file-list-container p-2">
+                <p class="fw-light text-center" style="font-size: 14px; margin-bottom: 0;">{{channel.name}}</p>
+                <p class="fw-light text-center text-muted" style="margin-bottom: 2px;">
+                    <small>{{channel.get_programing_language_display }}</small>
+                </p>
+
+                <div class="user-profile p-3">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ userprofile.imageURL }}" class="rounded-circle me-3" height="35" width="35"
+                            alt="User Avatar" loading="lazy" />
+                        <div class="info">
+                            <h6 class="mb-0 text-white" style="font-size: 15px;">@{{ userprofile.user.username }}</h6>
+                            <small class="text-secondary">{{ userprofile.user.email }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tools mb-1" style="background-color: var(--sidebar-bg); border-radius: 8px;">
+                    <a href=""> <img src="{% static 'editor/icons/google-meet.png' %}" height="50" class="p-2"
+                            alt=""></a>
+                    {% if request.user == channel.created_by.user %}
+                    <a href="{% url 'test_monitor' channel.id %}"><img src="{% static 'editor/icons/monitoring.png' %}"
+                            height="50" class="p-2" alt=""></a></a>
+                    {% endif %}
+
+                    {% if channel.labtest.first.available %}
+                    <button style="background: none;border:none" id="showModalBtn"><img
+                            src="{% static 'editor/icons/paper.png' %}" height="50" class="p-2" alt=""></button>
+                    {% endif %}
+                </div>
+
+                <div id="testModal"
+                    class="modal-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center d-none"
+                    style="z-index: 1050; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);">
+
+                    <!-- Modal Dialog -->
+                    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+                        <div class="modal-content border-0 shadow-lg rounded-4">
+
+                            <!-- Modal Header -->
+                            <div class="modal-header bg-warning text-dark border-0 rounded-top-4 p-4">
+                                <div class="w-100 text-center">
+                                    <i class="fas fa-exclamation-triangle fs-1 mb-2"></i>
+                                    <h3 class="modal-title fw-bold mb-0">Confirm Test Attempt</h3>
+                                </div>
+                            </div>
+
+                            <!-- Modal Body -->
+                            <div class="modal-body p-4">
+                                <div class="text-center mb-4">
+                                    <h5 class="text-muted mb-3">Are you sure you want to attempt the test right now?
+                                    </h5>
+                                    <p class="text-secondary small">Once started, the timer cannot be paused or reset.
+                                    </p>
+                                </div>
+
+                                <!-- Test Details Card -->
+                                <div class="card bg-light border-0 mb-4">
+                                    <div class="card-body p-3">
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-play-circle text-success me-2"></i>
+                                                    <small class="text-muted fw-medium">Test starts at:</small>
+                                                    <div class="fw-bold text-dark">{{lab_test.start_at}}</div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-stop-circle text-danger me-2"></i>
+                                                    <small class="text-muted fw-medium">Test ends at:</small>
+                                                    <div class="fw-bold text-dark">{{lab_test.end_at}}</div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-clock text-primary me-2"></i>
+                                                    <small class="text-muted fw-medium">Duration:</small>
+                                                    <div class="fw-bold text-primary fs-5">{{lab_test.duration}}</div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal Footer -->
+                            <div class="modal-footer border-0 p-4 pt-0">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-center w-100">
+                                    <button type="button" id="cancelBtn"
+                                        class="btn btn-outline-secondary btn-lg px-4 me-md-2">
+                                        <i class="fas fa-times me-2"></i>
+                                        No, Cancel
+                                    </button>
+                                    {% if lab_test.available %}
+                                    <a href="{% url 'test_editor' lab_test.id %}" class="btn btn-success btn-lg px-4">
+                                        <i class="fas fa-check me-2"></i>
+                                        Yes, Start Test
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    const modal = document.getElementById('testModal');
+                    const showModalBtn = document.getElementById('showModalBtn');
+                    const cancelBtn = document.getElementById('cancelBtn');
+
+                    showModalBtn.addEventListener('click', function () {
+                        modal.classList.remove('d-none');
+                        // Add smooth fade-in animation
+                        modal.style.opacity = '0';
+                        setTimeout(() => {
+                            modal.style.transition = 'opacity 0.3s ease';
+                            modal.style.opacity = '1';
+                        }, 10);
+                    });
+                    cancelBtn.addEventListener('click', function () {
+                        hideModal();
+                    });
+                    function hideModal() {
+                        modal.style.transition = 'opacity 0.3s ease';
+                        modal.style.opacity = '0';
+                        setTimeout(() => {
+                            modal.classList.add('d-none');
+                            modal.style.transition = '';
+                            modal.style.opacity = '';
+                        }, 300);
+                    }
+                </script>
+
+                <h3 class="sidebar-header p-1 d-flex justify-content-between">
+                    <span>
+                        <i class="fa-solid fa-folder"></i>
+                        <span class="folder-title">Code Files</span>
+                    </span>
+                    <span>
+                        <button id="new-file-btn" style="background: none;border: none; color: #ffffff;">
+                            <i class="fa-solid fa-plus"></i> New
+                        </button>
+                    </span>
+
+                </h3>
+
+                <form name="file_creation">
+                    <div class="create-file-section d-flex hidden mb-2" style="width: 100%;">
+                        <input type="text" class="form-control me-2" name="name" placeholder="Enter file name"
+                            style="background: none; border: none; border-bottom: 1px solid #f6f6f6; border-radius: 0px;">
+                        <button id="file-create-confrim" type="submit"
+                            style="border: none; background: none; color: #4ecdd1;" class="p-2">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                    </div>
+                </form>
+                <ul class="file-list">
+                    {% for channels_file in channels_files %}
+                    <li class="file-item">
+                        <button class="file-button w-100 text-start d-block" data-content="{{ channels_file.file }}"
+                            data-file_id="{{ channels_file.id }}" data-file_name="{{ channels_file.file_name }}">
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <!-- Left: Icon + File name -->
+                                <div class="d-flex align-items-center">
+                                    <i class="fa-solid fa-file file-icon me-2"></i>
+                                    <span class="file-name">
+                                        {{ channels_file.file_name|default:channels_file }}
+                                    </span>
+                                    &nbsp;
+                                    <!-- Right: Image -->
+                                    <img src="{{ channels_file.user.imageURL|default:'#' }}" height="20" width="20"
+                                        alt="User" class="rounded-circle">
+                                </div>
+
+                            </div>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <style>
+                    .connected-users {
+                        margin: 20px 0;
+                    }
+
+                    .connected-users .folder-title {
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        display: block;
+                    }
+
+                    #connected-users {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 5px;
+                        padding-left: 0;
+                        list-style: none;
+                        width: 100%;
+                        max-width: 300px;
+                    }
+
+                    .user-card {
+                        background-color: var(--sidebar-bg);
+                        padding: 12px;
+                        text-align: center;
+                        border-radius: 10px;
+                        color: #fff;
+                    }
+
+                    .user-avatar {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        background: #eee;
+                        overflow: hidden;
+                        margin: 0 auto;
+                    }
+
+                    .user-avatar img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+
+                    .user-name {
+                        display: block;
+                        margin-top: 8px;
+                        font-size: 14px;
+                    }
+                </style>
+
+                <div class="connected-users">
+                    <span class="folder-title">
+                        <i class="fa-solid fa-user-group" style="color: var(--accent-color);"></i>
+                        Connected Users (<span id="user-count" class="text-success">0</span>)</span>
+                    <ul id="connected-users"></ul>
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const fileButtons = document.querySelectorAll('.file-button');
+
+                        fileButtons.forEach(button => {
+                            button.addEventListener('click', function () {
+                                // Remove 'active' class from all buttons
+                                fileButtons.forEach(btn => btn.classList.remove('active'));
+
+                                // Add 'active' class to the clicked button
+                                this.classList.add('active');
+                            });
+                        });
+                    });
+                </script>
+
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-8 col-12 sidebar ">
+            <div class="code-editor ">
+                <div class=" d-flex justify-content-between p-2">
+
+                    <div class="d-flex flex-row">
+
+                        <button id="run-code" class="icons" data-executed="{{request.user}}"
+                            title="{{channel.programing_language}}" data-language="{{channel.programing_language}}">
+                            <i class="fa-solid fa-play me-2"></i> Run
+                        </button>
+
+                        <button id="save-code" class="icons">
+                            <i class="fa-solid fa-floppy-disk me-2"></i> Save
+                        </button>
+
+                        <div id="input-container" class="hidden d-flex"
+                            style="background: var(--header-bg); border: none;">
+                            <input type="text" id="file-name" placeholder="Enter a name" required />
+                            <button id="submit-name"
+                                style="background-color: var(--accent-color); color: var(--editor-bg); padding:5px; border: 1px solid var(--border-color); border-radius: 5px;">Submit</button>
+                            <button onclick="hide_container()" id="hide-button" class="btn btn-danger">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <script>
+                            document.getElementById('hide-button').addEventListener('click', function () {
+                                document.getElementById('input-container').classList.add('hidden');
+                            });
+
+                        </script>
+                        <div>
+                            <button class="icons" title="load the code from the local storage" id="load_data">
+                                <i class="fa-solid fa-upload me-2"></i> Load
+                            </button>
+                        </div>
+
+                        <div class="ms-1 me-1">
+                            <select id="theme-selector"
+                                style="padding:7px; border-radius: 5px; background: none; color: #f8f8f2;">
+                                <option style="background-color: none;" value="vs-dark">Dark</option>
+                                <option value="vs-light">Light</option>
+                                <option value="hc-black">High Contrast</option>
+                            </select>
+                        </div>
+
+
+                        {% if container %}
+                        {% if container_status == "running" %}
+                        <span class="text-success me-2"
+                            style="border: none; border-radius: 12px; font-size: 12px; height: auto;">
+                            <i class="fa-solid fa-check-circle"></i> connected
+                        </span>
+                        {% else %}
+                        {% if container_status == "exited" %}
+                        <div class="me-1 ms-1">
+                            <button id="start_container" onclick="startContainer(this)" class="btn-sm" style="
+                                    border: 1px solid var(--border-color);
+                                    border-radius: 5px;
+                                    background-color: #f7f7f7e9;
+                                    " data-user_id="{{userprofile.id}}">
+                                connect <i class="fa-brands fa-docker"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        {% else %}
+
+                        <p>
+                            <a href="{% url 'create_container' %}" class="badge bg-info me-2">create container</a>
+                        </p>
+
+                        {% endif %}
+
+                        <span>
+                            <div class="hidden d-inline-flex position-relative me-2" id="indicate">
+
+                                <img class="rounded-4 shadow-4" src="" id="coding_by_img" alt="" data-mdb-tooltip-init
+                                    title="" style="width: 30px; height: 30px; border:2px solid #4ecdd1;">
+                            </div>
+                        </span>
+
+                        <div>
+                            <ul class="list-group list-group-light d-flex flex-row" id="connected-users"></ul>
+                        </div>
+
+                    </div>
+                    <div class="d-flex">
+                        <button id="toggleMembers" class="tool-btn ms-3" title="Manage Members">
+                            <i class="fa-solid fa-users"></i>
+                        </button>
+
+                        <button id="toggleButton" title="Paste History" class="tool-btn">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="notification">Content pasted!</div>
+
+                <form id="codeForm" method="POST" action="{% url 'save_code' %}">
+                    <div id="editor" data-user="{{request.user}}" data-user_image="{{userprofile.imageURL}}"></div>
+                    {% csrf_token %}
+                    <input type="hidden" name="code" id="codeInput">
+                    <input type="hidden" name="channel_id" value="{{channel.id}}">
+                    <input type="hidden" name="file_id" id="coe_file_input" value="">
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-2 col-0 sidebar">
+            <div class="container">
+                <div id="pasteHistory" class="card"
+                    style="display: none; max-height: 100vh; overflow-y: auto;  background-color: #1e1e1e; color: #f8f8f2;">
+                    <div class="card-body">
+                        <h5 class="card-title" style="font-size: 14px;">Paste History</h5>
+                        <ul id="pasteList" class="list-group list-group-light">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="membersContainer" class="members p-3 ">
+                <button id="closeMembers" class="close-btn text-light">&times;</button>
+                <span class="text-light">All Members</span>
+                <!-- <hr>
+                <button class="btn btn-success">Give Everyone Access</button>
+                <hr> -->
+                <ul class="list-group list-group-light mt-3">
+                    {% for user in channel.participants.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="d-inline-flex position-relative">
+                                {% if user.is_user_online %}
+                                <span
+                                    class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
+                                    <span class="visually-hidden">New alerts</span>
+                                </span>
+                                {% else %}
+                                <span
+                                    class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                    <span class="visually-hidden">New alerts</span>
+                                </span>
+                                {% endif %}
+                                <img class="rounded-4 shadow-4" src="{{user.imageURL}}" alt="Avatar"
+                                    style="width: 50px; height: 50px;">
+                            </div>
+                            <div class="ms-3">
+                                <p class="fw-bold mb-1 text-light">
+                                    @{{user.user.username}}
+                                    &nbsp;
+                                    {% if user == channel.created_by %}
+                                    <span class="text-info">Admin</span>
+                                    {% endif %}
+                                    <!-- <span id="user_has_perm_{{user.id}}" class="badge"></span> -->
+                                </p>
+
+                                <p class=" mb-0 text-light">{{user.user.email}}</p>
+                            </div>
+                        </div>
+                        <span id="access_user_{{user.id}}">
+                            {% if userprofile == channel.created_by %}
+                            {% if user in channel.has_permission.all %}
+                            <button id="user_perm_{{user.id}}" class="permission badge  badge-danger" data-type="remove"
+                                data-user_id="{{user.id}}" data-user_name="{{user.user.username}}"
+                                data-channel_id="{{channel.id}}">
+                                Remove permission
+                            </button>
+                            {% else %}
+                            <button id="user_perm_{{user.id}}" class="permission badge  badge-info" data-type="add"
+                                data-user_id="{{user.id}}" data-user_name="{{user.user.username}}"
+                                data-channel_id="{{channel.id}}">
+                                give permission
+                            </button>
+                            {% endif %}
+                            {% elif user in channel.has_permission.all %}
+                            <span id="user_has_perm_{{user.id}}" class="badge rounded-pill badge-success">has
+                                permission</span>
+                            {% else %}
+                            <span id="user_has_perm_{{user.id}}" class="badge rounded-pill badge-danger">no
+                                permission</span>
+                            {% endif %}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+            </div>
+            <div id="output-container" class="output-container">
+                <!-- <div id="output-header" class="output-header">
+                    <span>Input <span style="opacity: .7; font-size: .8rem;">if you have any in your
+                            code</span> </span>
+                </div>
+                <div>
+                    <style>
+                        .inputs {
+                            border: none;
+
+                            background-color: #191a29;
+
+                            color: #f6f6f6;
+                        }
+                    </style>
+                    <textarea id="inputs" class="inputs" id="" placeholder="Enter your input here" cols="40"
+                        rows="10"></textarea>
+                </div> -->
+
+                <div id="output-header" class="output-header p-1" style="border-bottom: 1px solid #191a29; ">
+                    <div class="div  d-flex justify-content-between p-1">
+                        <span id="executed-by">Output</span>
+                        <button style="background: none; border: none; color: #4ecdd1;" onclick="copy_output()">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+
+                </div>
+                <div id="output" class="output"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="remote-user-indicator" style="position: absolute; display: none; z-index: 1000;">
+        <img id="remote-user-image" src="" style="width: 24px; height: 24px; border-radius: 50%;" />
+        <span id="remote-user-name"
+            style="background: #1e1e1e; color: white; padding: 2px 6px; font-size: 10px; border-radius: 4px; margin-left: 5px;"></span>
+    </div>
+
+
+    <audio src="{% static 'sound/join.mp3' %}" id="joined"></audio>
+
+    <div id="socket-status-container" class="position-absolute top-0 end-0 m-3">
+        <div id="socket-status-text" class="badge rounded-pill p-2">
+            <i class="fa-solid fa-spinner fa-spin"></i> Connecting...
+        </div>
+    </div>
+
+    <!-- Coneect Container -->
+    <script>
+        function startContainer(button) {
+            const userId = button.dataset.user_id;
+            const container_button = document.getElementById('start_container')
+            fetch('/start-container/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    "user_id": userId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('resposne: ', data)
+                    const status = data['container_status']
+                    container_button.innerHTML = status
+                    container_button.classList.add('btn-success')
+                    container_button.disabled = true;
+                    container_button.style.cursor = 'not-allowed';
+                })
+        }
+    </script>
+    <!--  -->
+    <script>
+        function copy_output() {
+            const copyText = document.getElementById('output').innerText;
+
+            navigator.clipboard.writeText(copyText)
+                .then(() => {
+                    alert("Copied the text: " + copyText);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+        }
+    </script>
+    <script>
+
+
+
+        const membersPanel = document.querySelector('.members');
+        const toggleBtn = document.querySelector('#toggleMembers'); // Assume there's a toggle button
+        const closeBtn = document.querySelector('#closeMembers');
+
+        // Show the panel
+        toggleBtn.addEventListener('click', () => {
+            membersPanel.classList.add('visible');
+        });
+
+        // Hide the panel
+        closeBtn.addEventListener('click', () => {
+            membersPanel.classList.remove('visible');
+        });
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/javascript/javascript.min.js"></script>
+
+
+    <script>
+
+
+        require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor/min/vs' } });
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+
+
+        const channel_id = "{{channel.id}}";
+        const userprofile = "{{userprofile}}"
+        const userprofile_id = "{{userprofile.id}}"
+        const roomName = "{{room_name}}";
+        const permitted_users = "{{channel.has_permission.all}}"
+        const selected_programing_language = "{{channel.programing_language}}";
+
+
+        require(['vs/editor/editor.main'], function () {
+            let editor;
+            let lan;
+            let value = '';
+            let read_only = true;
+            let flag = true;
+
+            let userPositions = new Map(); // Track user positions
+            let userDecorations = new Map(); // Track user decorations
+            let cursorDecorations = new Map(); // Track cursor decorations
+            let lineDecorations = new Map(); // Track line decorations
+
+            if (permitted_users.includes(userprofile)) {
+                read_only = false;
+            } else {
+                read_only = true;
+            }
+
+            if (selected_programing_language === "PYTHON") {
+                lan = 'python';
+            } else if (selected_programing_language === "C") {
+                lan = 'cpp';
+            } else {
+                lan = 'plaintext';
+            }
+
+
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                language: lan,
+                theme: 'vs-dark',
+                automaticLayout: true,
+                readOnly: read_only,
+                fontFamily: " 'JetBrains Mono', serif",
+                fontSize: 14,
+                fontLigatures: true,
+                lineNumbers: 'on',
+                glyphMargin: true,
+                folding: true,
+
+
+                // Cursor styling
+                cursorStyle: 'line',
+                cursorBlinking: 'solid',
+                cursorWidth: 2,
+                cursorSmoothCaretAnimation: true
+            });
+
+            // Function to update user position and display
+            function updateUserPosition(username, userImage, position, isTyping = false) {
+                if (!position) return;
+
+                const { lineNumber, column } = position;
+                userPositions.set(username, { position, userImage, isTyping });
+
+                // Remove old decorations for this user
+                if (userDecorations.has(username)) {
+                    editor.deltaDecorations(userDecorations.get(username), []);
+                    userDecorations.delete(username);
+                }
+                if (lineDecorations.has(username)) {
+                    editor.deltaDecorations(lineDecorations.get(username), []);
+                    lineDecorations.delete(username);
+                }
+
+                // Add new decorations
+                const decorations = [];
+
+                // Line indicator (user avatar on the left)
+                const lineIndicator = {
+                    range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                    options: {
+                        glyphMarginClassName: `user-line-indicator user-avatar-${username}`,
+                        glyphMarginHoverMessage: { value: `${username} is coding here` },
+                        stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
+                    }
+                };
+                decorations.push(lineIndicator);
+
+                const decorationIds = editor.deltaDecorations([], decorations);
+                // editor.updateOptions({
+                //     cursorStyle: 'underline',
+                //     cursorBlinking: 'phase'
+                // });
+                editor.setPosition({ lineNumber: lineNumber, column: column }); // Inside "console.log"
+                editor.focus();
+
+
+                userDecorations.set(username, decorationIds);
+
+                // Store individual decoration IDs for later removal
+                // cursorDecorations.set(username, [decorationIds[1]]);
+                lineDecorations.set(username, [decorationIds[0]]);
+
+                // Add CSS for user avatar
+                const styleId = `user-avatar-style-${username}`;
+                if (!document.getElementById(styleId)) {
+                    const style = document.createElement('style');
+                    style.id = styleId;
+                    style.textContent = `
+                        .user-avatar-${username} {
+                            background-image: url('${userImage}') !important;
+                            background-size: cover !important;
+                            background-position: center !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                // Update the merged users display
+            }
+
+            // Function to remove user position
+            function removeUserPosition(username) {
+                userPositions.delete(username);
+
+                if (userDecorations.has(username)) {
+                    editor.deltaDecorations(userDecorations.get(username), []);
+                    userDecorations.delete(username);
+                }
+                if (lineDecorations.has(username)) {
+                    editor.deltaDecorations(lineDecorations.get(username), []);
+                    lineDecorations.delete(username);
+                }
+
+                updateMergedUsersDisplay();
+            }
+
+            // Function to update merged users display (active coders first, then connected users)
+
+            const notification = document.getElementById("notification");
+
+
+            // Paste on the editor Notification implementation
+            const code_paste = new WebSocket(`${protocol}://${window.location.host}/ws/code-paste/${roomName}/${userprofile}/`);
+            let currentDecorations = [];
+
+            editor.onDidPaste((event) => {
+                const range = event.range;
+                const pastedContent = editor.getModel()?.getValueInRange(range) || "Unable to get pasted content";
+
+                if (code_paste.readyState === WebSocket.OPEN) {
+                    code_paste.send(JSON.stringify({
+                        type: 'paste_event',
+                        user: userprofile,
+                        room: roomName,
+                        content: pastedContent,
+                        range: {
+                            startLine: range.startLineNumber,
+                            startCol: range.startColumn,
+                            endLine: range.endLineNumber,
+                            endCol: range.endColumn,
+                        },
+                        timestamp: new Date().toISOString()
+                    }));
+                }
+            });
+
+            code_paste.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+
+                currentDecorations = editor.deltaDecorations(currentDecorations, []);
+
+                if (data.range) {
+                    const range = new monaco.Range(
+                        data.range.startLine,
+                        data.range.startCol,
+                        data.range.endLine,
+                        data.range.endCol
+                    );
+
+                    console.log('start-line:', data.range.startLine)
+                    console.log('endLine-line:', data.range.endLine)
+
+                    currentDecorations = editor.deltaDecorations([], [
+                        {
+                            range: range,
+                            options: {
+                                className: 'paste-highlight',
+                                isWholeLine: false,
+                                stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
+                            }
+                        }
+                    ]);
+
+                    setTimeout(() => {
+                        currentDecorations = editor.deltaDecorations(currentDecorations, []);
+                    }, 3000);
+                }
+
+                notification.style.display = "block";
+                setTimeout(() => {
+                    notification.style.display = "none";
+                }, 2000);
+
+                if (data.content) {
+                    const rangeInfo = data.range ?
+                        `Pasted at: L${data.range.startLine}:${data.range.startCol}` +
+                        (data.range.endLine !== data.range.startLine ?
+                            ` → L${data.range.endLine}:${data.range.endCol}` :
+                            `:${data.range.endCol}`)
+                        : "";
+
+                    // Add line numbers to the code
+                    const codeWithLineNumbers = data.content
+                        .split('\n')
+                        .map((line, i) => {
+                            const lineNum = data.range ? data.range.startLine + i : i + 1;
+                            return `<span class="line-number">${lineNum}</span> ${escapeHtml(line)}`;
+                        })
+                        .join('\n');
+
+                    const listItem = document.createElement("li");
+                    listItem.className = "list-group-item";
+                    listItem.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong class='text-secondary'>${data.user}</strong>
+                                <small class="text-secondary">${new Date(data.timestamp).toLocaleString()}</small>
+                            </div>
+                            ${rangeInfo ? `<div class="text-danger small mb-2">${rangeInfo}</div>` : ""}
+                        <pre class="bg-light p-2 rounded"
+                            style="white-space: pre; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 14px; position: relative;">
+                            <code style="display: block; padding-left: 2.5em;">${codeWithLineNumbers}</code>
+                        </pre>
+
+                        `;
+
+                    pasteList.prepend(listItem);
+                }
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+            };
+
+            code_paste.onclose = function () {
+                console.log('Code paste WebSocket connection closed');
+            };
+
+            code_paste.onerror = function (error) {
+                console.error('Code paste WebSocket error:', error);
+            };
+
+            // Paste on the editor Notification implementation ends here
+
+
+            // Theme selector implementation
+            document.getElementById("theme-selector").addEventListener("change", function (e) {
+                const selectedTheme = e.target.value;
+                console.log('Selected Theme:', selectedTheme);
+                monaco.editor.setTheme(selectedTheme);
+            });
+            // Theme selector implementation ends here
+
+
+
+            // Function to update socket status badge
+            function updateSocketStatus(status, message = '') {
+                const statusElement = document.getElementById('socket-status-text');
+                const iconElement = statusElement.querySelector('i');
+
+                // Remove all status classes
+                statusElement.classList.remove('connected', 'connecting', 'disconnected', 'error');
+
+                switch (status) {
+                    case 'connected':
+                        statusElement.classList.add('connected');
+                        iconElement.className = 'fa-solid fa-check-circle';
+                        statusElement.innerHTML = `<i class="fa-solid fa-check-circle"></i> Connected`;
+
+                        setTimeout(() => {
+                            statusElement.style.display = 'none';
+
+                        }, 3000);
+
+                        break;
+                    case 'connecting':
+                        statusElement.classList.add('connecting');
+                        iconElement.className = 'fa-solid fa-spinner fa-spin';
+                        statusElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Connecting...`;
+                        break;
+                    case 'disconnected':
+                        statusElement.classList.add('disconnected');
+                        iconElement.className = 'fa-solid fa-times-circle';
+                        statusElement.innerHTML = `<i class="fa-solid fa-times-circle"></i> Disconnected`;
+
+                        break;
+                    case 'error':
+                        statusElement.classList.add('error');
+                        iconElement.className = 'fa-solid fa-exclamation-triangle';
+                        statusElement.innerHTML = `<i class="fa-solid fa-exclamation-triangle"></i> ${message || 'Connection Error'}`;
+                        break;
+                }
+            }
+
+            // WebSocket connection for real-time code collaboration
+            const socket = new WebSocket(`${protocol}://` + window.location.host + '/ws/ac/' + roomName + '/' + userprofile_id);
+
+            let debounceTimer;
+            let isLocalChange = false;
+
+            // Track cursor position changes
+            editor.onDidChangeCursorPosition((event) => {
+                if (!isLocalChange) {
+                    const position = editor.getPosition();
+                    console.log('editorElement.dataset.user', editorElement.dataset.user, 'userprofile', editorElement.dataset.user_image)
+                    socket.send(JSON.stringify({
+                        type: 'cursor_position',
+                        cursor_position: position,
+                        coding_by: editorElement.dataset.user,
+                        user_image: editorElement.dataset.user_image
+                    }));
+                }
+            });
+
+            editor.onDidChangeModelContent((event) => {
+                if (!isLocalChange) {
+                    const changes = event.changes.map(change => ({
+                        range: {
+                            startLineNumber: change.range.startLineNumber,
+                            startColumn: change.range.startColumn,
+                            endLineNumber: change.range.endLineNumber,
+                            endColumn: change.range.endColumn
+                        },
+                        text: change.text
+                    }));
+
+                    const position = editor.getPosition();
+                    socket.send(JSON.stringify({
+                        type: 'code_change',
+                        changes: changes,
+                        coding_by: editorElement.dataset.user,
+                        user_image: editorElement.dataset.user_image,
+                        cursor_position: position,
+                        is_typing: true
+                    }));
+
+                    // Update local user position as typing
+                    updateUserPosition(editorElement.dataset.user, editorElement.dataset.user_image, position, true);
+
+                    // Clear typing indicator after a delay
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        updateUserPosition(editorElement.dataset.user, editorElement.dataset.user_image, position, false);
+                    }, 2000);
+                }
+            });
+
+
+            socket.onopen = function () {
+                console.log('websocket opened')
+                updateSocketStatus('connected');
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: "allconnecteduser" }));
+
+                    // Send current position
+                    const position = editor.getPosition();
+                    socket.send(JSON.stringify({
+                        type: 'cursor_position',
+                        cursor_position: position,
+                        coding_by: editorElement.dataset.user,
+                        user_image: editorElement.dataset.user_image
+                    }));
+                }
+            };
+            socket.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+
+                if (data.coding_by !== userprofile) {
+                    // Handle cursor position updates
+                    if (data.type === 'cursor_position') {
+                        updateUserPosition(data.coding_by, data.user_image, data.cursor_position, false);
+                    }
+
+                    // Handle code changes
+                    if (data.type === 'code_change' && !isLocalChange) {
+                        isLocalChange = true;
+                        const model = editor.getModel();
+                        // Apply each change individually
+                        model.applyEdits(data.changes.map(change => ({
+                            range: new monaco.Range(
+                                change.range.startLineNumber,
+                                change.range.startColumn,
+                                change.range.endLineNumber,
+                                change.range.endColumn
+                            ),
+                            text: change.text,
+                            forceMoveMarkers: true
+                        })));
+
+                        const cursorPosition = data.cursor_position;
+                        if (cursorPosition && userprofile !== data.coding_by) {
+                            editor.setPosition(cursorPosition);
+                            // Update user position as typing
+                            updateUserPosition(data.coding_by, data.user_image, cursorPosition, data.is_typing || false);
+                        }
+
+                        isLocalChange = false;
+                    }
+                }
+                if (data.coding_by) {
+                    const coding_by_img = document.getElementById('coding_by_img')
+                    coding_by_img.src = data.user_image
+                    coding_by_img.title = data.coding_by
+                    const indicate = document.getElementById('indicate')
+                    indicate.classList.replace('hidden', 'not_hidden')
+                }
+
+                if (data.connected_users) {
+                    console.log('Connected users', data.connected_users)
+                    const connected_users = data.connected_users
+                    const x = document.getElementById('joined')
+                    connected_users.forEach(user => {
+                        addConnectedUser(user.username, user.image)
+                        x.play()
+
+                        // Initialize user position if they're not the current user
+                        // if (user.username !== userprofile) {
+                        //     // Set initial position at line 1, column 1
+                        //     updateUserPosition(user.username, user.image, { lineNumber: 1, column: 1 }, false);
+                        // }
+                    });
+                    if (userprofile === data.first_user) {
+
+                        console.log('editor value is :  ', editor.getValue())
+                        socket.send(JSON.stringify({
+                            'type': 'sync_editor',
+                            'initial_code': editor.getValue(),
+                            'first_user': data.first_user
+                        }))
+                    }
+                }
+                if (data.type === "user_disconnected") {
+                    removeConnectedUser(data.left_user);
+                    // Remove user position indicators
+                    removeUserPosition(data.left_user);
+                }
+
+                if (data.type === "initial_change") {
+                    const initial_code = data.initial_code
+
+                    console.log('Initial_code is: ', initial_code, data.first_user, userprofile);
+                    if (data.first_user !== userprofile) {
+                        isLocalChange = true; // Set this to true to indicate a local change
+                        editor.setValue(initial_code); // Set the editor value without triggering WebSocket
+                        isLocalChange = false; // Reset after setting the value
+                    }
+                }
+            };
+            socket.onclose = function (e) {
+                console.log('WebSocket closed unexpectedly');
+                updateSocketStatus('disconnected');
+            };
+            socket.onerror = function (error) {
+                console.error('WebSocket error:', error);
+                updateSocketStatus('error', 'Connection failed');
+            };
+
+            // End of WebSocket connection for real-time code collaboration
+
+
+
+
+            const editorElement = document.getElementById('editor');
+
+            document.querySelector('.file-list').addEventListener('click', function (e) {
+                const button = e.target.closest('.file-button');
+                if (button) {
+                    if (!read_only) {
+                        const content = button.getAttribute('data-content');
+                        const file_id = button.dataset.file_id;
+                        const file_name = button.dataset.file_name;
+                        editor.setValue(content);
+                        editorElement.dataset.file_id = file_id;
+                        editorElement.dataset.file_name = file_name;
+                        console.log(editorElement.dataset.file_id);
+                        document.getElementById('output').innerText = '';
+
+                        // Handle active class
+                        document.querySelectorAll('.file-button').forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                    } else {
+                        alert("You Don't Have any Permission");
+                    }
+                }
+            });
+
+
+
+            document.getElementById('save-code').addEventListener('click', () => {
+                const inputContainer = document.getElementById('input-container');
+                document.getElementById('file-name').value = editorElement.dataset.file_name;
+                inputContainer.classList.toggle('hidden');
+            });
+            document.getElementById('submit-name').addEventListener('click', () => {
+                const inputContainer = document.getElementById('file-name');
+                const name = inputContainer.value;
+                const code = editor.getValue();
+                const file_id = editorElement.dataset.file_id;
+                const channel_id = "{{channel.id}}"
+
+                fetch('/save-code/', {
+                    method: "POST",
+                    headers: {
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    },
+                    body: JSON.stringify({
+                        "name": name,
+                        'code': code,
+                        'file_id': file_id,
+                        'channel_id': channel_id
+                    })
+
+
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.msg) {
+                            window.location.reload();
+                        } else if (data.error) {
+                            alert(data.error)
+                        }
+                    })
+            })
+
+            document.getElementById("load_data").addEventListener('click', () => {
+                console.log('Clicked')
+                const savedCode = localStorage.getItem(`${channel_id}_cod`);
+                if (savedCode) {
+                    editor.setValue(savedCode);
+                }
+            })
+
+
+            const save_code_in_local_storage = () => {
+                let value = editor.getValue();
+                console.log('Done')
+                if (value) {
+                    localStorage.setItem(`${channel_id}_cod`, value);
+                }
+            }
+
+            const btn = document.getElementById('run-code');
+
+
+
+            let taskId = null
+
+
+            function updateUserCount() {
+                const userList = document.getElementById('connected-users');
+                const countSpan = document.getElementById('user-count');
+                if (userList && countSpan) {
+                    countSpan.textContent = userList.children.length;
+                }
+            }
+
+            function addConnectedUser(username, imageUrl) {
+                const userList = document.getElementById('connected-users');
+                if (!userList) {
+                    console.error('User list element not found!');
+                    return;
+                }
+
+                // Check if the user is already in the list
+                const userExists = Array.from(userList.children).some(
+                    item => item.querySelector('img')?.title === username
+                );
+                if (userExists) {
+                    console.log(`User ${username} is already connected.`);
+                    return;
+                }
+
+                // Create the new user list item
+                const listItem = document.createElement('li');
+
+                listItem.innerHTML = `
+        <div class="user-card">
+            <div class="user-avatar">
+                <img src="${imageUrl}" alt="${username}" title="${username}">
+            </div>
+            <span class="user-name">${username}</span>
+        </div>
+    `;
+
+                userList.appendChild(listItem);
+                updateUserCount();
+            }
+
+            function removeConnectedUser(username) {
+                const userList = document.getElementById('connected-users');
+                if (!userList) {
+                    console.error('User list element not found!');
+                    return;
+                }
+
+                // Find the user's list item by the title attribute
+                const userItem = Array.from(userList.children).find(
+                    item => item.querySelector('img')?.title === username
+                );
+
+                // Remove the user's list item
+                if (userItem) {
+                    userList.removeChild(userItem);
+                    console.log(`User ${username} has been removed.`);
+                    updateUserCount();
+                }
+            }
+
+
+
+
+
+
+            //  Task execution and result handling
+            const task_socket = new WebSocket(`${protocol}://${window.location.host}/ws/task-result/${roomName}/`);
+
+            task_socket.onopen = function () {
+                console.log('Task socket connected');
+            };
+
+            task_socket.onclose = function () {
+                console.log('Task socket closed');
+            };
+
+            task_socket.onerror = function (error) {
+                console.error('Task socket error:', error);
+            };
+
+            task_socket.onmessage = function (event) {
+                console.log(event)
+                console.log("Task ouput is : ", JSON.parse(event.data))
+                data = JSON.parse(event.data)
+                const output_dev = document.getElementById('output')
+                output_dev.textContent += data.output;
+                document.getElementById('executed-by').innerText = `Executed by: ${data.code_executed_by}`;
+
+                btn.disabled = false;
+                btn.className = 'icons'; // Reset to original class
+                btn.innerHTML = '<i class="fa-solid fa-play me-2"></i> Run';
+                btn.style.backgroundColor = ''; // Remove inline style
+                btn.style.cursor = '';
+                btn.style.pointerEvents = '';
+                btn.style.opacity = '';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+                btn.style.boxShadow = '';
+                btn.style.transform = '';
+            }
+            function startTask(code, code_executed_by, inputs, language) {
+                fetch('/start-task/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        "code": code,
+                        "code_executed_by": code_executed_by,
+                        "inputs": inputs,
+                        "roomName": roomName,
+                        "language": language
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const task_id = data.task_id
+                        console.log('Your task id is: ', task_id)
+                    })
+                    .catch(error => {
+                        console.error('Error starting task:', error);
+                    });
+            }
+
+            btn.addEventListener('click', function () {
+                const code = editor.getValue();
+                const code_executed_by = btn.dataset['executed'];
+                const language = btn.dataset['language'];
+                const inputs = ""
+
+                console.log('language is: ', language)
+
+                startTask(code, code_executed_by, inputs, language);
+
+                btn.disabled = true;
+                btn.style.backgroundColor = '#ccc';
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+                btn.style.cursor = 'not-allowed';
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.7';
+                btn.style.color = '#666';
+                btn.style.borderColor = '#ccc';
+                btn.style.boxShadow = 'none';
+                btn.style.transform = 'none';
+
+
+            });
+
+
+            function sendCodeForExecution(code, code_executed_by, inputs) {
+                socket.send(JSON.stringify({
+                    'code': code,
+                    'code_executed_by': code_executed_by,
+                    'inputs': inputs
+                }));
+            }
+
+            // Permission handling
+
+
+
+            // WebSocket connection for permission handling
+            const permission_socket = new WebSocket(`${protocol}://` + window.location.host + '/ws/permission/' + roomName + '/')
+
+            permission_socket.onopen = function () {
+                console.log('Permission socket connected');
+            };
+
+            permission_socket.onclose = function () {
+                console.log('Permission socket closed');
+            };
+
+            permission_socket.onerror = function (error) {
+                console.error('Permission socket error:', error);
+            };
+
+
+            permission_socket.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+
+                console.log(data);
+
+                const userId = data.user_id;
+                const type = data.type;
+
+                // Update the UI for all users
+                const permissionButton = document.getElementById(`user_perm_${userId}`);
+                const statusBadge = document.getElementById(`user_has_perm_${userId}`);
+
+                if (userprofile === "{{channel.created_by}}") {
+                    if (type === "remove") {
+                        // Update button to "Give Permission"
+                        permissionButton.innerHTML = 'Give permission';
+                        permissionButton.dataset.type = "add";
+                        permissionButton.classList.remove("badge-danger");
+                        permissionButton.classList.add("badge-info");
+
+                        // statusBadge.classList.add("hidden");
+                    } else if (type === "add") {
+                        permissionButton.innerHTML = 'Remove permission';
+                        permissionButton.dataset.type = "remove";
+                        permissionButton.classList.remove("badge-info");
+                        permissionButton.classList.add("badge-danger");
+
+                        // statusBadge.classList.remove("hidden");
+                        // statusBadge.innerHTML = '<span class="text-success">Has permission</span>';
+                    }
+                }
+
+                if (data.user === userprofile) {
+                    if (type === "remove") {
+                        editor.updateOptions({ readOnly: true });
+                        statusBadge.innerHTML = '<span class="text-danger">No permission</span>';
+                    } else if (type === "add") {
+                        editor.updateOptions({ readOnly: false });
+                        statusBadge.innerHTML = '<span class="text-success">Has permission</span>';
+                    }
+                }
+                if (type === "remove") {
+                    statusBadge.innerText = 'no permission';
+                    statusBadge.className = ''
+                    statusBadge.classList.add("badge", "rounded-pill", "badge-danger")
+                } else if (type === "add") {
+                    statusBadge.innerText = 'has permission';
+                    statusBadge.className = ''
+                    statusBadge.classList.add("badge", "rounded-pill", "badge-info")
+                }
+            }
+
+            document.querySelectorAll(".permission").forEach(button => {
+                button.addEventListener("click", function () {
+                    const username = this.getAttribute("data-user_name");
+                    const user_id = this.getAttribute("data-user_id");
+                    const channelId = this.getAttribute("data-channel_id");
+                    const type = this.getAttribute('data-type')
+
+                    permission_socket.send(JSON.stringify({
+                        'user_name': username,
+                        'user_id': user_id,
+                        'type': type
+                    }))
+
+                });
+            });
+
+            // End of Permission handling
+
+
+
+
+
+
+            // File Creation
+
+            document.getElementById('new-file-btn').addEventListener('click', () => {
+                document.querySelector('.create-file-section').classList.toggle('hidden');
+            });
+
+            document.getElementById('file-create-confrim').addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default form submission
+
+                const file_name = document.forms['file_creation']['name'].value;
+
+                fetch('/create-file/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_name: file_name,
+                        channel_id: channel_id,
+                        user_id: "{{userprofile.id}}"
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            notification.innerText = "File Created Successfully"
+                            notification.style.display = 'block'
+                            setTimeout(() => {
+                                notification.style.display = "none";
+                            }, 2000);
+
+                            const fileList = document.querySelector('.file-list');
+
+                            const li = document.createElement('li');
+                            li.classList.add('file-item');
+
+                            console.log(data)
+
+                            li.innerHTML = `
+                            <button class="file-button w-100 text-start d-block" data-content="" data-file_id="${data.id}" data-file_name="${file_name}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <!-- Left side: Icon and file name -->
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa-solid fa-file file-icon me-2"></i>
+                                        <span class="file-name">${file_name}</span>
+                                        &nbsp;
+                                    <img src="${data.user_image}" height="25" width="25" alt="User" class="rounded-circle ">
+
+                                    </div>
+                                    
+                                    <!-- Right side: User image (optional or placeholder) -->
+                                </div>
+                            </button>
+                        `;
+
+
+                            fileList.prepend(li); // ✅ add to the end, or use prepend if needed
+                            document.querySelector('.create-file-section').classList.toggle('hidden');
+
+                        }
+                        else if (data.error) {
+                            notification.innerText = "Something went worng"
+                            notification.style.display = 'block'
+                        }
+
+                        // optionally reset form or hide input
+                    });
+            });
+
+
+
+        });
+
+    </script>
+
+    <script>
+
+        function foo() {
+            const elements = document.querySelectorAll('.now-coding');
+            elements.forEach(element => {
+                console.log(element);
+
+                element.classList.replace('now-coding', 'j');
+            });
+
+            console.log('Class replacement happened:', elements);
+
+            setTimeout(foo, 10000);
+        }
+        // foo();
+        // document.getElementById('inputs').setAttribute('placeholder', "input1 \ninput2 \n.....")
+
+
+
+    </script>
+
+
+    <script>
+
+        const toggleButton = document.getElementById("toggleButton");
+        const pasteHistory = document.getElementById("pasteHistory");
+        const pasteList = document.getElementById("pasteList");
+
+        toggleButton.addEventListener("click", () => {
+            const isVisible = pasteHistory.style.display === "block";
+            pasteHistory.style.display = isVisible ? "none" : "block";
+            // toggleButton.textContent = isVisible ? "Show Paste History" : "X";
+        });
+
+    </script>
+
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/8.1.0/mdb.umd.min.js"></script>
+</body>
+
+</html>

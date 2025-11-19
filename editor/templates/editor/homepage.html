@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Code Editor</title>
+
+
+
+
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet">
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.1.0/mdb.min.css" rel="stylesheet" />
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.1.0/mdb.umd.min.js"></script>
+
+  <link rel="stylesheet" href="{% static 'editor/css/home.css' %}">
+</head>
+
+<body data-user="{{request.user}}" data-userImage="{{userprofile.imageURL}}" data-userId="{{userprofile.id}}">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+      <!-- Toggle button -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Collapsible wrapper -->
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <!-- Navbar brand -->
+        <a class="navbar-brand" href="#">
+          <i class="fas fa-code"></i> CodeCollab
+        </a>
+        <!-- Left links -->
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" href="/blog/"><i class="fas fa-blog me-1"></i> Blogs</a>
+          </li>
+        </ul>
+        <!-- Left links -->
+
+        <!-- Right elements -->
+        <div class="d-flex align-items-center">
+          <!-- User actions -->
+
+
+
+
+          <div class="dropdown">
+            {% if userprofile %}
+            <a data-mdb-dropdown-init class="dropdown-toggle d-flex align-items-center hidden-arrow" href="#"
+              id="navbarDropdownMenuAvatar" role="button" aria-expanded="false">
+              <img src="{{userprofile.imageURL}}" class="rounded-circle" height="25"
+                alt="Black and White Portrait of a Man" loading="lazy" />
+            </a>
+            <!-- <span class="fw-light" style="font-size: small;">Hello {{userprofile.user.username}}!</span> -->
+            {% else %}
+            <a data-mdb-dropdown-init class="dropdown-toggle d-flex align-items-center hidden-arrow" href="#"
+              id="navbarDropdownMenuAvatar" role="button" aria-expanded="false">
+              <img src="https://mdbcdn.b-cdn.net/img/new/avatars/2.webp" class="rounded-circle" height="25"
+                alt="Black and White Portrait of a Man" loading="lazy" />
+            </a>
+            {% endif %}
+
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuAvatar">
+              <!-- <li class="text-center">
+                {% if container %}
+                <span class="text-info me-3 d-none d-md-inline">
+                  <i class="fas fa-server me-1"></i>Container Active
+                </span>
+                {% else %}
+                <a class="badge bg-info" href="{% url 'create_container' %}">
+                  <i class="fas fa-plus-circle me-1"></i>Create Container
+                </a>
+                {% endif %}
+              </li> -->
+              <li>
+                <a class="dropdown-item" href="{% url 'profile' user.id %}">My profile</a>
+              </li>
+
+              <!-- <li>
+                <a class="dropdown-item" href="#">Settings</a>
+              </li> -->
+              {% if request.user.is_authenticated %}
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+              </li>
+              {% else %}
+              <li><a class="dropdown-item" href="{% url 'login' %}"><i class="fas fa-sign-in-alt me-2"></i>Login</a>
+              </li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        <!-- Right elements -->
+      </div>
+    </div>
+  </nav>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <!-- People List -->
+      <!-- <div class="col-lg-2 col-md-6 mb-4">
+     
+      </div> -->
+
+      <!-- Channel List -->
+      <div class="col-lg-8 col-md-6 mb-4">
+        <div class="channel-list-container p-3 rounded">
+
+          <div
+            class="channels-header flex-column flex-md-row d-flex align-items-start align-items-md-center justify-content-between gap-3 gap-md-0">
+
+            <h3 class="mb-2 mb-md-0"><i class="fas fa-hashtag"></i> Channels <span class="badge">{{ channels|length }}
+                Channels</span></h3>
+
+            <style>
+              .btnn button {
+                border: none;
+                border-radius: 6px;
+                transition: all 0.3s ease;
+                background: none;
+                color: var(--text-color);
+                opacity: .8;
+                padding: 0.5rem 1rem;
+                font-size: 1rem;
+                margin-right: 0.5rem;
+              }
+
+              .btnn button:last-child {
+                margin-right: 0;
+              }
+
+              @media (max-width: 576px) {
+                .channels-header {
+                  flex-direction: column !important;
+                  align-items: flex-start !important;
+                  gap: 0.75rem !important;
+                }
+
+                .btnn {
+                  width: 100%;
+                  flex-direction: column;
+                  gap: 0.5rem;
+                }
+
+                .btnn button {
+                  width: 100%;
+                  margin-right: 0;
+                }
+              }
+            </style>
+            <div class="d-flex btnn flex-wrap">
+              <button id="joinChannelBtn">
+                <i class="fas fa-door-open me-2 text-success"></i>Join Channel
+              </button>
+
+
+              <button onclick="window.location.href='/labtest-list/'">
+                <img src="{% static 'editor/icons/paper.png' %}" height="30" alt="monitor">
+                Lab test
+              </button>
+              {% if teacher %}
+              <button onclick="window.location.href='/view-available-lab/'">
+                <img src="{% static 'editor/icons/monitoring.png' %}" height="30" alt="monitor">
+                Lab
+              </button>
+              {% endif %}
+
+            </div>
+          </div>
+
+          <!-- Join Channel Form -->
+          <div id="joinChannelForm" class="card mb-4 text-light d-none">
+            <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
+              <p class="text-center mb-0"><i class="fas fa-sign-in-alt me-2"></i>Join Channel</p>
+            </div>
+            <div class="card-body">
+              <form id="joinChannelFormElement">
+                <div class="mb-3">
+                  <label for="room-id" class="form-label">Channel ID</label>
+                  <input type="text" id="room-id" class="form-control" placeholder="Enter Room ID" required>
+                  <div class="form-text text-muted">You must be authenticated to join channels</div>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <button type="button" id="cancelJoinBtn" class="btn btn-secondary">
+                    <i class="fas fa-times me-1"></i>Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-1"></i>Join
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Channel Creation Form -->
+
+
+          <!-- Channels Grid -->
+          <div class="channels-grid">
+            {% for channel in channels %}
+            <a href="{% url 'channel' channel.id %}" class="text-light" style="text-decoration: none;">
+              <div class="channel-card">
+
+                <div class="channel-card-header">
+                  <!-- <img src="{{ channel.imageURL }}" alt="{{ channel.name }}" class="channel-avatar"> -->
+                  <div style="width: 100%;">
+                    <div class="channel-title d-flex justify-content-between">
+                      <div>
+                        {{ channel.name }}
+                        <!-- {% if channel.programing_language == "PYTHON" %}
+                        <img class="language-icon" src="{% static 'editor/icons/python.png' %}">
+                        {% elif channel.programing_language == "C" %}
+                        <img class="language-icon" src="{% static 'icons/c.png' %}" alt="C">
+                        {% endif %} -->
+                      </div>
+                      <div>
+                        <!-- <div class="dropdown">
+                          <a data-mdb-dropdown-init class="dropdown-toggle d-flex align-items-center hidden-arrow" 
+                            href="#" id="navbarDropdownMenuAvatar" role="button" aria-expanded="false">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                          </a>
+                          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuAvatar">
+                            <li>
+                              <a class="dropdown-item" href="#">Join</a>
+                            </li>
+                            <li>
+                              <a class="dropdown-item" href="#">Leave</a>
+                            </li>
+                            <li>
+                              <a class="dropdown-item text-danger" href="#">Delete</a>
+                            </li>
+                          </ul>
+                        </div> -->
+                      </div>
+
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <div class="channel-language">
+                        <i class="fas fa-code"></i>
+                        {% if channel.programing_language == "PYTHON" %}
+                        Python 3.12.3
+                        {% elif channel.programing_language == "C" %}
+                        GCC 13.3.0
+                        {% endif %}
+                      </div>
+                      <div class="channel-created">
+                        &nbsp; &nbsp;&nbsp;<i class="far fa-calendar-alt"></i> {{ channel.created_at|date:"M d, Y" }}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+                <div class="channel-card-body">
+                  <div class="channel-meta">
+
+                  </div>
+                  <div class="channel-admin d-flex justify-content-between">
+                    <div>
+                      <img src="{{ channel.created_by.imageURL }}" alt="{{ channel.admin.user.username }}"
+                        class="admin-avatar">
+                      <div class="admin-info">
+                        <!-- <div class="admin-label">Channel Admin</div> -->
+                        <div class="admin-name">@{{ channel.created_by.user.username }}</div>
+                      </div>
+                    </div>
+                    <style>
+                      .avatar-group {
+                        display: flex;
+                        align-items: center;
+                      }
+
+                      .avatar-group img {
+                        height: 25px;
+                        width: 25px;
+                        border-radius: 50%;
+                        border: 2px solid white;
+                        object-fit: cover;
+                      }
+
+                      .avatar-group img:not(:first-child) {
+                        margin-left: -8px;
+                        /* adjust overlap */
+                      }
+                    </style>
+
+                    <div style="line-height: 2;">
+                      <div class="avatar-group">
+                        {% for user in channel.participants.all|slice:":5" %}
+                        <img src="{{ user.imageURL }}" alt="{{ user.username }}">
+                        {% endfor %}
+
+                      </div>
+                      <div class="channel-members">
+                        <!-- <i class="fas fa-users"></i> -->
+                        {{ channel.participants.count }} members
+                      </div>
+                    </div>
+
+
+
+
+                  </div>
+                </div>
+                <!-- <div class="channel-card-footer">
+                <a href="{% url 'channel' channel.id %}" style="text-decoration: none;" class="join-channel-btn">
+                  <i class="fas fa-sign-in-alt me-1"></i> Join Channel
+                </a>
+              </div> -->
+              </div>
+            </a>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+              <i class="fas fa-hashtag fa-3x mb-3" style="color: var(--text-muted);"></i>
+              <h4>No Channels Found</h4>
+              <p class="text-muted">Create your first channel to start collaborating</p>
+              <!-- <button id="create-channel" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Create Channel
+              </button> -->
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Chat -->
+      <div class="col-lg-4 col-12">
+        <div class="chat-container">
+          <div class="chat-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-globe"></i> Global Chat</span>
+            <button id="toggleChat" style="background: none; border: none; color: white;">
+              <i id="toggleIcon" class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+
+          <div id="chat-body">
+            {% for chat in chats %}
+            <div class="chat-message">
+              <img src="{{chat.sender.imageURL}}" alt="{{chat.sender}}" class="user-image">
+              <div class="message-content">
+                <div class="user-info">
+                  <span class="user">{{chat.sender}}</span>
+                  <span class="message-time">{{chat.send_at}}</span>
+                </div>
+                <div class="message-text">{{chat.message}}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <script>
+            const toggleBtn = document.getElementById('toggleChat');
+            const chatBody = document.getElementById('chat-body');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            let isCollapsed = false;
+
+
+            toggleBtn.addEventListener('click', () => {
+              if (!isCollapsed) {
+                chatBody.style.height = '0';
+                chatBody.style.padding = '0';
+                toggleIcon.classList.remove('fa-chevron-down');
+                toggleIcon.classList.add('fa-chevron-up');
+              } else {
+                chatBody.style.height = '400px';
+                chatBody.style.padding = '';  // restore padding if needed
+                toggleIcon.classList.remove('fa-chevron-up');
+                toggleIcon.classList.add('fa-chevron-down');
+              }
+              isCollapsed = !isCollapsed;
+            });
+          </script>
+
+          <div class="chat-footer">
+            <div id="chatForm" class="d-flex align-items-center">
+              <input type="text" id="messageInput" class="form-control me-2" placeholder="Type a message..."
+                aria-label="Message input">
+              <button type="button" class="btn" id="send_btn" data-user="{{userprofile}}">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="people-list-container p-3 mt-3 rounded"
+          style="background-color: var(--dark-bg); min-height: auto; max-height: 800px; overflow-y: auto;">
+          <h3> Contacts </h3>
+          <ul class="people-list">
+            {% for user in users %}
+            <a href="{% url 'chat_room' user_id=user.id %}" style="color: inherit; text-decoration: none;">
+              <li class="d-flex align-items-center">
+                <img src="{{user.imageURL}}" alt="User 1" class="profile-avatar me-3">
+                <span style="text-transform: capitalize;">
+                  {{user.user.username}}
+                  <span class="ms-2"><i class="fas fa-comment-dots"></i></span>
+                  {% if user.is_user_online %}
+                  <span class="badge bg-success badge-dot ms-2"></span>
+                  {% endif %}
+                </span>
+              </li>
+            </a>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <!-- MDB -->
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.0.0/mdb.umd.min.js"></script>
+</body>
+<script src="{% static 'editor/js/home.js' %}">
+
+</script>
+
+</html>

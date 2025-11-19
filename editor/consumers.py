@@ -1,0 +1,531 @@
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from .tasks import run_code_task
+from celery.result import AsyncResult
+from datetime import datetime
+from .models import *
+from asgiref.sync import async_to_sync, sync_to_async
+import redis
+
+# Replace with your Redis URL
+# redis_client = redis.Redis.from_url("redis://red-cuj40v0gph6c73fqc0ig:6379/0")
+
+
+redis_client = redis.StrictRedis(host='redis_server', port=6379,db=0)
+# redis_client = redis.StrictRedis(host='127.0.0.1', port=6379,db=0)
+
+
+try:
+    print('redis_client_response',redis_client.ping())  # Should return True if connected
+except Exception as e:
+    print(f"Error: {e}")
+
+
+class CodeEditorConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        userprofile_id = self.scope['url_route']['kwargs']['userprofile']
+        self.room_group_name = f'editor_{self.room_name}'
+
+        userprofile = await sync_to_async(UserProfile.objects.get)(id=userprofile_id)
+        username = await sync_to_async(lambda: userprofile.user.username)()
+        userimage = await sync_to_async(lambda: userprofile.imageURL())()
+
+
+        user_data = {
+            "username": username,
+            "image": userimage,
+        }
+
+        stored_data = redis_client.get(self.room_group_name)
+
+        if stored_data:
+            all_users = list(json.loads(stored_data))
+        else:
+            all_users = []
+
+        if user_data in all_users:
+            pass
+        else:
+            all_users.append(user_data)
+
+        serialized_user_data = json.dumps(all_users)
+        redis_client.set(self.room_group_name, serialized_user_data)
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type':'allconnecteduser'
+            }
+        )
+    async def allconnecteduser(self,event):
+        print('connected event is: ',event)
+        
+        all_users = redis_client.get(self.room_group_name)
+        if all_users:
+            all_users = json.loads(all_users)
+            print("All Connected Users:")
+            print(all_users)
+
+        first_user = all_users[0].get('username')
+        
+        await self.send(text_data=json.dumps({
+            'connected_users': all_users,
+            'first_user':first_user
+        }))
+        
+
+    async def disconnect(self, close_code):
+        print('Disconnecting with close code:', close_code)
+        await self.handle_user_leave()
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def handle_user_leave(self):
+        print('Sending leave_user event to group:', self.room_group_name)
+        all_users = redis_client.get(self.room_group_name)
+        if all_users:
+            all_users = list(json.loads(all_users))
+        userprofile_id = self.scope['url_route']['kwargs']['userprofile']
+
+        userprofile = await sync_to_async(UserProfile.objects.get)(id=userprofile_id)
+        username = await sync_to_async(lambda: userprofile.user.username)()
+        userimage = await sync_to_async(lambda: userprofile.imageURL())()
+
+
+        # Prepare user data
+        user_data = {
+            "username": username,
+            "image": userimage,
+        }  
+        
+        if user_data in all_users:
+            all_users.remove(user_data)
+        
+        print('After user disconnected: all data is : ', json.dumps(all_users)) 
+        redis_client.set(self.room_group_name, json.dumps(all_users))
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'leave_user',
+                'left_user': username
+            }
+        )
+
+    async def leave_user(self, event):
+        print('leave_user handler called.')
+
+        
+
+        left_user = event.get('left_user')
+
+        await self.send(text_data=json.dumps({
+            'left_user': left_user,
+            'type':'user_disconnected'
+        }))
+
+
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        
+        print('Text Data Json: ====', text_data_json)
+
+        if text_data_json.get('type') == 'sync_editor':
+            initial_code = text_data_json.get('initial_code')
+            print('Sync Code called : ', initial_code)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_initial_code',
+                    'initial_code':initial_code,
+                    'first_user':text_data_json['first_user']
+                }
+                
+            )
+            
+        if text_data_json.get('type') == 'code_change':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_code_change',
+                    'changes': text_data_json['changes'],
+                    'coding_by': text_data_json['coding_by'],
+                    'user_image': text_data_json['user_image'],
+                    'cursor_position': text_data_json['cursor_position'],
+                }
+            )
+
+    async def broadcast_code_change(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'code_change',
+            'changes': event['changes'],
+            'coding_by': event['coding_by'],
+            'user_image': event['user_image'],
+            'cursor_position': event['cursor_position'],
+        }))
+    
+    async def broadcast_initial_code(self, event):
+        print('broadcasted_initial_code',event)
+        await self.send(text_data=json.dumps({
+            'type':'initial_change',
+            'initial_code':event.get('initial_code',''),
+            'first_user':event.get('first_user','')
+        }))
+
+
+    # Broadcast the code or its output to all connected clients in the group
+    async def send_code_output(self, event):
+        raw_code = event.get('raw_code', '')
+        coding_by = event.get('coding_by','')
+        user_image = event.get('user_image','')
+        text_data_json = event.get('text_data_json','')
+        
+
+       
+     
+
+
+        await self.send(text_data=json.dumps({
+            'raw_code': raw_code,
+            'coding_by':coding_by,
+            'user_image':user_image,
+            'text_data_json':text_data_json,
+        }))
+
+
+class TaskResult(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'task_{self.room_name}'
+        print('connected')
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        
+    
+    async def disconnect(self, code):
+        # Leave room group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    
+    async def task_update(self, event):
+        
+
+        output = event.get('output')
+        code_executed_by = event.get('code_executed_by')
+        
+        
+        await self.send(text_data=json.dumps({
+            "output": output,
+            "code_executed_by": code_executed_by,
+        }))
+
+
+class TestEditorConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+
+        await self.accept()
+
+    async def disconnect(self, code):
+        pass
+    
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        code = text_data_json.get('code')
+        language = text_data_json.get('language')
+        user = text_data_json.get('user')
+        inputs = text_data_json.get('inputs')
+        channel_name = self.channel_name
+        
+        print('inputs is :', inputs)
+        
+        task = run_code_task.delay(code=code,inputs=inputs, language=language, code_executed_by=user, from_test_editor=True, test_eidtor_channel_name=channel_name)
+        print('task is: ', task)
+        
+        await self.send(text_data=json.dumps({
+            "type": "test_editor_connected",
+            "status": "executing"
+        }))
+        
+    
+    async def test_editor_update(self, event):
+        output = event.get('output')
+        code_executed_by = event.get('code_executed_by')
+        
+        await self.send(text_data=json.dumps({
+            "output": output,
+            "code_executed_by": code_executed_by,
+        }))
+
+    
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['chat_room']
+        self.room_group_name = f'chat_{self.room_name}'
+        
+        print('===================================')
+        print('----------For Chat------------')
+        print(f'={self.channel_name}=')
+        print(f'={self.channel_layer}')
+        print(f'={self.room_group_name}')
+        print('===================================')
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+         
+        )
+        await self.accept()
+    
+    async def receive(self, text_data=None, bytes_data=None):
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+        print(text_data_json)
+        await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send_data',
+                    'data':text_data_json
+                }
+            )
+        # await self.send(
+        #     json.dumps(text_data_json)
+        # )
+        
+    async def send_data(self,event):
+        data = event.get('data')
+        await self.send(text_data=json.dumps(
+            data
+        ))
+
+class GlobalChat(AsyncWebsocketConsumer):
+    async def connect(self):
+        user = self.scope['url_route']['kwargs']['user']
+        self.room_group_name = f'global_chat'
+
+      
+        now = datetime.now().strftime("%m/%d/%Y, %I:%M:%S %p")
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+         
+        )
+        await self.accept()
+        
+        await self.channel_layer.group_send( 
+            self.room_group_name,
+            {
+            'type':'send.global',
+            "message": f"{user} is connected!",
+            'sender':"Admin",
+            "time":now 
+            } 
+            
+        )
+
+    async def disconnect(self, close_code):
+        pass
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message = data.get('message', '')
+        sender = data.get('sender', '')
+        userImage = data.get('userImage', '')
+        time = data.get('time', '')
+        user_id = data.get('user_id', '')
+        from asgiref.sync import sync_to_async
+
+        if user_id:
+            try:
+                user = await sync_to_async(UserProfile.objects.get)(id=user_id)
+                # print('user is:', user.user.username)
+            except UserProfile.DoesNotExist:
+                print(f'User with id {user_id} does not exist.')
+                user = None  # Handle this appropriately based on your logic.
+
+        if user:
+            try:
+                await sync_to_async(GlobalChatRoom.objects.create)(
+                    sender=user,
+                    message=message
+                )
+                print("Message saved successfully!")
+            except Exception as e:
+                print(f"Error saving message: {e}")
+
+    
+            
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type':'send.global',
+                'message':message,
+                'sender':sender,
+                "userImage":userImage,
+                "time":time
+            }
+        )
+    async def send_global(self,event):
+        message = event.get('message','')
+        sender = event.get('sender','')
+        userImage = event.get('userImage','https://www.pngplay.com/wp-content/uploads/12/User-Avatar-Profile-PNG-Free-File-Download.png')
+        time = event.get('time','')
+        
+        await self.send(text_data=json.dumps({
+            'message': message,
+            'sender': sender,
+            'userImage': userImage,
+            "time":time
+        }))
+
+
+
+class PermissionConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.channel_id = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'permission_room_{self.channel_id}'
+        print('Permission Room Connected!')
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+    
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+    async def receive(self, text_data=None):
+        data = json.loads(text_data)
+        
+        username = data.get('user_name')
+        user_id = data.get('user_id')
+        type = data.get('type')
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type':'handle_permission',
+                'user':username,
+                'user_id':user_id,
+                'permission_type':type
+            }
+        )        
+    async def handle_permission(self,event):
+        user = event.get('user')
+        user_id = event.get('user_id')
+        permission_type = event.get('permission_type')
+        
+        userpro = await sync_to_async(UserProfile.objects.get)(id=user_id)
+        channel = await sync_to_async(Channel.objects.get)(id =self.channel_id)
+        
+        if permission_type == "remove":
+            await sync_to_async(channel.has_permission.remove)(userpro)
+        else:
+            await sync_to_async(channel.has_permission.add)(userpro)
+        
+        
+        
+        await self.send(text_data=json.dumps({
+            'user': user,
+            'user_id': user_id,
+            'type':permission_type
+        }))
+        
+        
+
+
+
+
+class CopypasteConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.user = self.scope['url_route']['kwargs']['userprofile']
+        self.room_group_name = f"code_paste_{self.room_name}"
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        if data['type'] == 'paste_event':
+            await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'broadcast_paste',
+                        'user': data['user'],
+                        'content': data['content'],
+                        'timestamp': data['timestamp'],
+                        'range': data['range'],
+                    }
+                )
+
+    async def broadcast_paste(self, event):
+        await self.send(text_data=json.dumps({
+            'message': f"code pasted",
+            'user':event['user'],
+            'content': event['content'],
+            'time':event['timestamp'],
+            'range':event['range']
+        }))
+
+
+
+
+
+class TestMonitor(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f"test_monitor_{self.room_name}"
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        print('datas: ',data)
+        if data['type'] == 'test_code':
+            await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'broadcast_to_admin',
+                        'changes':data.get('changes'),
+                        'user_id':data.get('user_id'),
+                        'user_name':data.get('user_name'),
+                        'user_profile':data.get('user_profile'),
+                    }
+                )
+
+    async def broadcast_to_admin(self, event):
+        await self.send(text_data=json.dumps({
+            'changes': event['changes'],
+            'user_id': event['user_id'],
+            'user_name': event['user_name'],
+            'user_profile': event['user_profile'],
+        }))

@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Code Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.css">
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/3024-day.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/3024-night.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/darcula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+
+
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/8.1.0/mdb.min.css" rel="stylesheet" />
+
+
+
+
+    <style>
+         :root {
+        --dark_void: #151419;
+        --lava: #f56f10;
+        --glucongray: #1b1a1f;
+        --glucongray1: #262626;
+        --snow: #fbfbfb;
+        }
+        body {
+
+            background-color: #4c4f60;
+            color: #f8f8f2;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+            font-family: "Ubuntu", sans-serif;
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        .row {
+            max-width: 100%;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        h5 {
+            margin-bottom: 20px;
+        }
+
+        #editor {
+            width: 800px;
+            min-width: 800px;
+            /* Fixed width for the editor */
+            height: auto;
+            /* Height will adjust automatically */
+            border: 1px solid #44475a;
+            background-color: #44475a;
+            /* Background color */
+        }
+
+        #run-code {
+            background-color: #50fa7b;
+            color: #282a36;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .output-container {
+            width: 100%;
+            /* min-height: 50px; */
+            /* Consistent width with editor */
+            margin-top: 20px;
+            /* Space between button and output */
+            border: 1px solid #6272a4;
+            border-radius: 5px;
+            /* Rounded corners */
+            background-color: #44475a;
+            /* Background color */
+            padding: 10px;
+        }
+
+        .output-header {
+            font-weight: bold;
+            color: #f6f6f6;
+            /* Highlighted color for user */
+            margin-bottom: 10px;
+            /* Space between header and output */
+        }
+
+        .output {
+            color: #f8f8f2;
+            /* Default text color */
+            white-space: pre-wrap;
+            /* Preserve whitespace and line breaks */
+            /* overflow-y: auto; */
+            /* Enable vertical scrolling */
+            /* max-height: 200px; */
+            /* Limit output height */
+            padding: 15px;
+            /* Padding around output text */
+            border: 1px solid #6272a4;
+            /* Border for the output */
+            border-radius: 3px;
+            /* Rounded corners for output */
+            background-color: #282a36;
+            /* Background color for output */
+        }
+
+        .code-editor {
+            margin: auto;
+        }
+
+        #run-code {
+            background-color: #4ecdd1;
+        }
+    </style>
+    <style>
+        .people-list-container {
+            background-color: #191a29;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 20px;
+            max-width: 250px;
+        }
+        .navbar{
+            background-color: #191a29;
+        }
+
+        .file-list-container {
+            background-color: #191a29;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 20px;
+            /* max-width: 250px; */
+        }
+
+        .people-list-container h3,
+        .file-list-container h3 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #4ecdd1;
+        }
+
+        .participants-list {
+            padding: 0;
+        }
+
+        .participants-list li {
+            display: flex;
+            /* justify-content:space-around; */
+            align-items: center;
+            padding: 10px;
+            /* border-bottom: 1px solid #282828; */
+            transition: background-color 0.3s;
+        }
+
+        /* .participants-list li:hover {
+            background-color: #282a36;
+        } */
+
+        .participants-list li span {
+            font-size: 1.1em;
+            color: #ffffff;
+            opacity: .6;
+        }
+
+        .participants-list li i {
+            color: #4ecdd1;
+            font-size: 1.2em;
+        }
+
+        .now-coding {
+            display: block;
+            font-size: .8rem;
+        }
+
+        .j {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark  p-3">
+        <!-- Container wrapper -->
+        <div class="container-fluid">
+            <!-- Toggle button -->
+            <button data-mdb-collapse-init class="navbar-toggler" type="button"
+                data-mdb-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Collapsible wrapper -->
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <!-- Navbar brand -->
+                <a class="navbar-brand mt-2 mt-lg-0" href="/">
+                    <i class="fa-solid fa-code"></i>
+                </a>
+                <!-- Left links -->
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Team</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Projects</a>
+                    </li>
+                </ul>
+                <!-- Left links -->
+            </div>
+            <!-- Collapsible wrapper -->
+
+            <!-- Right elements -->
+            <div class="d-flex align-items-center">
+                <!-- Icon -->
+                {% if request.user.is_authenticated %}
+                Hello {{userprofile.user.username}}! &nbsp;&nbsp;
+                {% else %}
+                <a data-mdb-ripple-init type="button" href="{% url 'login' %}" class="btn btn-link px-3 me-2">
+                    Login
+                </a>
+                <button data-mdb-ripple-init type="button" class="btn btn-primary me-3">
+                    Sign up for free
+                </button>
+                {% endif %}
+                <!-- Notifications -->
+                <div class="dropdown">
+                    <a data-mdb-dropdown-init class="link-secondary me-3 dropdown-toggle hidden-arrow" href="#"
+                        id="navbarDropdownMenuLink" role="button" aria-expanded="false">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge rounded-pill badge-notification bg-danger">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuLink">
+                        <li>
+                            <a class="dropdown-item" href="#">Some news</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">Another news</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">Something else here</a>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Avatar -->
+                <div class="dropdown">
+                    <a data-mdb-dropdown-init class="dropdown-toggle d-flex align-items-center hidden-arrow" href="#"
+                        id="navbarDropdownMenuAvatar" role="button" aria-expanded="false">
+                        {% if userprofile %}
+                        <img src="{{userprofile.imageURL}}" class="rounded-circle" height="35"
+                            alt="Black and White Portrait of a Man" loading="lazy" />
+                        {% else %}
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTY4lzrMEr0amU3ubAgMpsMXUw5kqMqHrylBNDQi82fS6QYpEC0TaE0FxSYhYmHGL4RGOU&usqp=CAU"
+                            class="rounded-circle" height="25" alt="" loading="lazy" />
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuAvatar">
+                        <li>
+                            <a class="dropdown-item" href="#">My profile</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">Settings</a>
+                        </li>
+                        {% if request.user.is_authenticated %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'login' %}">login</a>
+                        </li>
+                        {% endif %}
+
+                    </ul>
+                </div>
+            </div>
+            <!-- Right elements -->
+        </div>
+        <!-- Container wrapper -->
+    </nav>
+
+
+    <!-- <hr color="#fff"> -->
+
+    <div class="row mt-3">
+        <div class="col-lg-1 col-md-2 col-2 p-3">
+            <div class="people-list-container">
+                <h6>Connected</h6>
+                <hr>
+                <ul class="list-group list-group-light" id="connected-users">
+
+                </ul>
+            </div>
+
+
+        </div>
+
+        <div class="col-lg-9 col-md-10 col-10">
+            <div class="code-editor">
+                <!-- <h6 style=" color: #dbdbdb;">
+                    Channel - <span style="opacity: .8;">{{channel.name}}</span>
+                    Invitation link: http://127.0.0.1:8000/join-channel/1/
+                </h6> -->
+                <div class="my-2">
+                    <button id="run-code" class="btn" data-executed="{{request.user}}" title="{{channel.programing_language}}" data-language="{{channel.programing_language}}">RUN</button>
+                    <button id="save-code" class="btn btn-warning ml-2"><i
+                            class="fa-regular fa-floppy-disk"></i></button>
+                    <select id="theme-selector" style="padding:7px; border-radius: 5px;">
+                        <option value="default">Default Theme</option>
+                        <option value="3024-night">3024 Night</option>
+                        <option value="3024-day">3024 Day</option>
+                     
+                        <option value="darcula">Darcula</option>
+                        <option value="dracula">Dracula</option>
+                        
+                    </select>
+
+                    <a class="btn btn-outline-info" data-mdb-collapse-init href="#collapseExample" role="button"
+                        aria-expanded="false" aria-controls="collapseExample">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </a>
+                    <span class="collapse" id="collapseExample" style="cursor: text;">
+                        <a class="p-2 bg-light" href="{{url}}">{{url}}</a>
+                    </span>
+                    {% if container_status == "exited" %}
+                    <button id="start_container" onclick="startContainer(this)" class="btn btn-danger"
+                        data-user_id="{{userprofile.id}}">
+                        Connect Container
+                    </button>
+                    {% else %}
+                    <span class="badge badge-success">{{container_status}}</span>
+                    {% endif %}
+
+                    <span>
+                        <style>
+                            .hidden {
+                                display: none;
+                            }
+
+                            .not_hidden {
+                                display: block;
+                            }
+                        </style>
+                        <style>
+                            .gif{
+                                height: 20px;
+                                width: 20px;
+                                border-radius: 50%;
+                            }
+                        </style>
+                        <div class="d-inline-flex position-relative hidden" id="indicate">
+                            <span
+                                class="position-absolute top-0 start-100 translate-middle">
+                                <img src="{% static 'icons/light-bulb.gif' %}" class="gif" alt="">
+                            </span>
+                            <img class="rounded-4 shadow-4 " src="" id="coding_by_img" alt="" data-mdb-tooltip-init
+                                title="" style="width: 35px; height: 35px;">
+                        </div>
+                    </span>
+                    <script>
+                        function startContainer(button) {
+                            const userId = button.dataset.user_id;
+                            const container_button = document.getElementById('start_container')
+                            fetch('/start-container/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    "user_id": userId
+                                })
+                            })
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log('resposne: ', data)
+                                    const status = data['container_status']
+                                    container_button.innerHTML = status
+                                    container_button.classList.replace('btn-danger','btn-success')
+                                })
+                        }
+                    </script>
+                </div>
+                    <textarea id="editor" data-user="{{request.user}}"
+                        data-user_image="{{userprofile.imageURL}}"></textarea>
+            
+
+
+
+
+                <div id="output-container" class="output-container">
+
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div id="output-header" class="output-header">
+                                <span id="executed-by">Output</span>
+                            </div>
+                            <div id="output" class="output"></div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div id="output-header" class="output-header">
+                                <span>Input <span style="opacity: .7; font-size: .8rem;">if you have any in your
+                                        code</span> </span>
+                            </div>
+                            <div>
+                                <style>
+                                    #inputs {
+                                        border: none;
+                                        background: #282a36;
+                                        color: #f6f6f6;
+                                    }
+
+                                    /* .inputs:focus{
+                                        border:2px solid black;
+                                        background-color: red;
+                                    } */
+                                </style>
+                                <textarea id="inputs"  placeholder="Enter your input here" cols="40"
+                                    rows="10"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <style>
+            .members {
+                position: absolute;
+                top: 0;
+                right: -400px;
+                /* Hidden off-screen */
+                width: 400px;
+                height: auto;
+                background-color: rgba(0, 0, 0, 0.212);
+                overflow-y: auto;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+                transition: right 0.3s ease;
+                z-index: 9;
+                padding: 20px;
+                backdrop-filter: blur(10px);
+                position: fixed;
+            }
+
+            .members.visible {
+                right: 0;
+                visibility: visible;
+            }
+
+            .close-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: #333;
+                z-index: 10;
+            }
+
+            .close-btn:hover {
+                color: red;
+            }
+
+            .hidden {
+                right: -400px;
+                visibility: hidden;
+
+            }
+        </style>
+
+        <div class="col-lg-2 col-md-0 col-0 ">
+            <button id="toggleMembers" class="btn btn-info position-relative">Members
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill badge-danger">
+                    {{channel.participants.all|length}}
+                    <span class="visually-hidden">unread messages</span>
+                </span>
+            </button>
+            <div id="membersContainer" class="members hidden p-3 ">
+                <button id="closeMembers" class="close-btn text-info">&times;</button>
+                <span class="text-light">All Members - {{channel.participants.all|length}}</span>
+                <ul class="list-group list-group-light mt-3">
+                    {% for user in channel.participants.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <img src="{{user.imageURL}}" alt="" style="width: 45px; height: 45px"
+                                class="rounded-circle" />
+                            <div class="ms-3">
+                                <p class="fw-bold mb-1 text-light">
+                                    @{{user.user.username}}
+                                    &nbsp;
+                                    {% if user == channel.created_by %}
+                                    <span class="text-info">Admin</span>
+                                    {% endif %}
+                                </p>
+
+                                <p class=" mb-0 text-light">{{user.user.email}}</p>
+                            </div>
+                        </div>
+                        {% if user.is_user_online %}
+                        <span class="badge rounded-pill badge-success">Active</span>
+                        {% else %}
+                        <span class="badge rounded-pill badge-warning">Offline</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="file-list-container mt-3">
+
+                <h3><i class="fa-solid fa-folder"></i>&nbsp;<span style="color: #ffffff; opacity: .8;">
+                        <span style="font-size: .8rem; opacity: .8;">You can load this in editor</span> </span>
+                </h3>
+                <ul class="participants-list" style="list-style: none;">
+                    {% for channels_file in channels_files %}
+                    <li>
+                        <button class="btn file-button" data-content="{{ channels_file.file }}"
+                            data-file_id="{{channels_file.id}}" style="color: #f8f8f2; background: #44475a;">
+                            <i class="fa-solid fa-file"></i>
+                            &nbsp;
+                            <span style="opacity: .8;">
+                                {% if channels_file.file_name %}
+                                {{channels_file.file_name}}
+                                {% else %}
+                                {{ channels_file }}
+                                {% endif %}
+                                <!-- <span style="background-color: #fff; padding-left: 5px;padding-right: 5px; border-radius: 3px;">
+                                      <a href="" style=" cursor:text; z-index: 9;"><img src="{% static 'editor/icons/rename.png' %}" height="20" width="20" alt="icons"></a>  
+                                    </span> -->
+                                <!-- <br> -->
+                                <!-- <span style="font-size: .5rem;">{{channels_file.date|timesince}} ago</span> -->
+                            </span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('toggleMembers').addEventListener('click', function () {
+            const membersContainer = document.getElementById('membersContainer');
+            membersContainer.classList.replace('hidden', 'visible');
+        });
+
+        document.getElementById('closeMembers').addEventListener('click', function () {
+            const membersContainer = document.getElementById('membersContainer');
+            membersContainer.classList.replace('visible', 'hidden');
+        });
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/javascript/javascript.min.js"></script>
+
+
+    <script>
+
+        function scrollToBottom() {
+            const scrollHeight = document.body.scrollHeight;
+
+            window.scrollTo(0, scrollHeight);
+        }
+
+        const editorElement = document.getElementById('editor');
+
+
+        const editor = CodeMirror.fromTextArea(editorElement, {
+            lineNumbers: true,
+            mode: "python",
+            theme: "default",
+            viewportMargin: Infinity,
+            lineWrapping: true,
+            indentWithTabs: true,
+            tabSize: 4,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            smartIndent: true,
+            styleActiveLine: true,
+            lint: true,
+            highlightSelectionMatches: { showToken: /\w/ },
+        });
+        // Add keyboard shortcuts
+        editor.setSize(null, "750px");  // Set the height to 500px
+
+
+      
+        document.querySelectorAll('.file-button').forEach(button => {
+            button.addEventListener('click', function () {
+                const content = this.getAttribute('data-content');  
+                const file_id = this.dataset.file_id
+                editor.setValue(content);
+                editorElement.dataset.file_id = file_id
+                console.log(editorElement.dataset.file_id)
+                // document.getElementById('inputs').value = ""
+
+
+            });
+        });
+
+
+        const saveCode = () => {
+            const code = editor.getValue();
+            document.getElementById('codeInput').value = code;
+            document.getElementById('coe_file_input').setAttribute('value', editorElement.dataset.file_id)
+            document.getElementById('codeForm').submit();
+        };
+
+
+        const loadCode = () => {
+            const savedCode = localStorage.getItem('savedCode');
+            if (savedCode) {
+                editor.setValue(savedCode);
+            }
+        };
+
+
+        document.getElementById('save-code').addEventListener('click', saveCode);
+
+
+        // Theme select
+        const themeSelector = document.getElementById('theme-selector');
+        themeSelector.addEventListener('change', () => {
+            console.log('selector: ', themeSelector.value)
+            const selectedTheme = themeSelector.value;
+            editor.setOption('theme', selectedTheme);
+        });
+
+        // Load code when the page loads
+        window.onload = loadCode;
+
+
+        // ==================================================================================================================
+        const btn = document.getElementById('run-code');
+        const roomName = "{{room_name}}";
+
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/ac/' + roomName + '/' + "{{userprofile.id}}");
+        let isLocalChange = false;
+
+        socket.onopen = function () {
+            console.log('websocket opend')
+            socket.send(JSON.stringify({ type: "allconnecteduser" }));
+        };
+
+        let taskId = null
+        socket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            console.log('Message received from server:', data);
+
+            if (data.raw_code && !isLocalChange) {
+                const cursorPos = editor.getCursor()
+                isLocalChange = true;
+                editor.setValue(data.raw_code);
+                editor.setCursor(cursorPos);
+                isLocalChange = false;
+            }
+            if (data.coding_by) {
+                const coding_by_img = document.getElementById('coding_by_img')
+                coding_by_img.src = data.user_image
+                coding_by_img.title = data.coding_by
+                const indicate = document.getElementById('indicate')
+                indicate.classList.replace('hidden', 'not_hidden')
+            }
+
+            if (data.user) {
+                console.log('Connected users', data.connected_users);
+                addConnectedUser(data.user, data.userimage)
+            }
+        };
+
+
+        function addConnectedUser(username, imageUrl) {
+            // Get the UL element
+            const userList = document.getElementById('connected-users');
+
+            // Create the LI element
+            const listItem = document.createElement('li');
+            listItem.className = 'd-flex justify-content-between align-items-center mb-2';
+
+            // Create the inner HTML for the new LI
+            listItem.innerHTML = `
+            <div class="d-flex align-items-center">
+                <img src="${imageUrl}" alt="" style="width: 30px; height: 30px" class="rounded-circle" />
+                <div class="ms-1" style="max-width: 60px; word-wrap: break-word;">
+                    <p class="mb-1 text-info">${username}</p>
+                </div>
+            </div>
+        `;
+
+            // Append the new LI to the UL
+            userList.appendChild(listItem);
+        }
+
+        socket.onclose = function (e) {
+            console.error('WebSocket closed unexpectedly');
+        };
+
+        let debounceTimer;
+
+        editor.on('change', function () {
+            if (!isLocalChange) {
+                clearTimeout(debounceTimer);
+                const rawCode = editor.getValue();
+                const coding_by = editorElement.dataset.user;
+                const user_image = editorElement.dataset.user_image;
+
+                debounceTimer = setTimeout(() => {
+                    socket.send(JSON.stringify({
+                        'raw_code': rawCode,
+                        'coding_by': coding_by,
+                        'user_image': user_image
+                    }));
+                }, 1000); // Wait 1s after the user stops typing
+            }
+        });
+
+        // ===========================================================================================================================
+
+
+
+        // ===========================================================================================================================
+        const task_socket = new WebSocket('ws://' + window.location.host + '/ws/task-result/' + roomName + '/');
+
+
+        task_socket.onmessage = function (event) {
+            console.log("Task ouput is : ", JSON.parse(event.data))
+            data = JSON.parse(event.data)
+            document.getElementById('output').innerText = data.output;
+            document.getElementById('executed-by').innerText = `Executed by: ${data.code_executed_by}`;
+
+            scrollToBottom()
+        }
+        function startTask(code, code_executed_by, inputs, language) {
+            fetch('/start-task/', {
+                method: 'POST',
+                headers: {
+                    'Content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                    "code": code,
+                    "code_executed_by": code_executed_by,
+                    "inputs": inputs,
+                    "roomName": roomName,
+                    "language":language
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const task_id = data.task_id
+                    console.log('Your task id is: ', task_id)
+
+                    // const task_socket = new WebSocket(`ws://${window.location.host}/ws/task-result/${roomName}/`);
+
+
+                })
+                .catch(error => {
+                    console.error('Error starting task:', error);
+                });
+        }
+
+        btn.addEventListener('click', function () {
+            const code = editor.getValue();
+            const code_executed_by = btn.dataset['executed'];
+            const language = btn.dataset['language'];
+            const inputs = document.getElementById('inputs').value
+            console.log(inputs.value)
+            startTask(code, code_executed_by, inputs,language);
+        });
+
+
+        function sendCodeForExecution(code, code_executed_by, inputs) {
+            socket.send(JSON.stringify({
+                'code': code,
+                'code_executed_by': code_executed_by,
+                'inputs': inputs
+            }));
+        }
+        // ===========================================================================================================================
+
+    </script>
+
+    <script>
+
+        function foo() {
+            const elements = document.querySelectorAll('.now-coding');
+            elements.forEach(element => {
+                console.log(element);
+
+                element.classList.replace('now-coding', 'j');
+            });
+
+            console.log('Class replacement happened:', elements);
+
+            setTimeout(foo, 10000);
+        }
+        // foo();
+        document.getElementById('inputs').setAttribute('placeholder', "input \ninput2 \n.....")
+        document.getElementById('inputs').setAttribute('value', "torjo")
+    </script>
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/8.1.0/mdb.umd.min.js"></script>
+
+</body>
+
+</html>

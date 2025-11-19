@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: django-app
+    env: docker
+    buildCommand: |
+      docker build -t django-app -f Dockerfile .
+    startCommand: daphne -b 0.0.0.0 -p 8000 realtime_code_editor.asgi:application
+    envVars:
+      - key: REDIS_HOST
+        value: redis-server
+      - key: REDIS_PORT
+        value: 6379
+      - key: DOCKER_HOST
+        value: unix:///var/run/docker.sock
+    ports:
+      - 8000
+    volumes:
+      - /app:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./staticfiles:/app/staticfiles
+    dependsOn:
+      - redis-server
+
+  - type: redis
+    name: redis-server
+    image: redis:latest
+    plan: free 
+    ipAllowList: []  
+
+  # Environment Container (for Code Execution)
+  # - type: docker
+  #   name: python-environment
+  #   env: docker
+  #   plan: free
+  #   repo: https://github.com/faysalhassantorjo/RCE.git
+  #   dockerfilePath: Dockerfile.environment
+  #   envVars:
+  #     - key: WORKING_DIR
+  #       value: /code_file

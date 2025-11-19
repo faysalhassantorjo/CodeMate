@@ -14,11 +14,9 @@ services:
       - key: REDIS_PORT
         value: 6379
     
-    dependsOn:
-      - redis-server
+
 
   - type: redis
     name: redis-server
-    image: redis:latest
     plan: free 
     ipAllowList: []

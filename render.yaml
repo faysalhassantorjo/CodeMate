@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: django-app
+    name: codemate-realtime-editor
     env: docker
+    plan: free
     repo: https://github.com/faysalhassantorjo/CodeMate.git
     branch: main
-    plan: free
     envVars:
       - key: REDIS_HOST
         fromService:
@@ -14,10 +14,12 @@ services:
         fromService:
           name: redis
           property: port
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
 
 databases:
   - name: redis
     plan: free
-    databaseName: redis
     ipAllowList: []
-    region: oregon

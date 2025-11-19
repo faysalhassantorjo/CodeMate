@@ -175,9 +175,9 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://rce-production.up.railway.app',
-    "https://django-app-2t4t.onrender.com",
-    'https://realtime-code-editor-xobw.onrender.com/'
+    # 'https://rce-production.up.railway.app',
+    # "https://django-app-2t4t.onrender.com",
+    'https://realtime-code-editor-xobw.onrender.com'
 ]
 
 # Default primary key field type

@@ -31,7 +31,8 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import tarfile,io
 import socket
-client = docker.from_env()
+# client = docker.from_env()
+client=None
 import re
 import base64
 @shared_task

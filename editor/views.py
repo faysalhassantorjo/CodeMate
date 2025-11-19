@@ -9,7 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
 # Create your views here.
-client = docker.from_env()
+# client = docker.from_env()
+client=None
 
 def channel(request,channel_id):
     channel = Channel.objects.get(id = channel_id)

@@ -9,11 +9,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827;
+            background: #e00000;
+        }
+
+        :root {
+            --color-bg: #1e1e1e;
+            --color-bg-secondary: #252526;
         }
 
         .online-dot {
@@ -51,11 +54,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.1.0/mdb.min.css" rel="stylesheet" />
 </head>
 
-<body class="text-gray-100" style="background-color: #111827;">
+<body class="text-gray-100" style="background: var(--color-bg);">
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8">
         <!-- Profile Header -->
-        <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden mb-8">
+        <div class="rounded-xl overflow-hidden mb-8" style="background: var(--color-bg-secondary);">
             <!-- Cover Photo -->
             <div class="h-48 bg-gradient-to-r from-indigo-900 to-gray-900 relative">
                 <div class="absolute bottom-4 right-4">
@@ -88,7 +91,8 @@
                                 user_profile.last_activity|timesince }} ago{% endif %}
                             </span>
                             <span class="text-gray-600">|</span>
-                            <span class="text-gray-400"><i class="fas fa-calendar-alt mr-2"></i>Joined {{user_profile.user.date_joined|date:"M Y" }}</span>
+                            <span class="text-gray-400"><i class="fas fa-calendar-alt mr-2"></i>Joined
+                                {{user_profile.user.date_joined|date:"M Y" }}</span>
                         </div>
                     </div>
 
@@ -130,14 +134,14 @@
                         class="fas fa-chart-line fa-fw me-2"></i>Container</a>
             </li>
             <li class="nav-item" role="presentation">
-                <a data-mdb-tab-init class="nav-link" id="ex-with-icons-tab-3" href="#channel" role="tab"
+                <a data-mdb-tab-init class="nav-link" id="ex-with-icons-tab-3" href="#channels" role="tab"
                     aria-controls="channel" aria-selected="false"><i class="fas fa-cogs fa-fw me-2"></i>Channel</a>
             </li>
         </ul>
         <style>
             .nav-tabs .nav-link {
                 color: #b6b6b6 !important;
-                background-color: #111827 !important;
+                background-color: var(--color-bg-secondary) !important;
             }
 
             .nav-tabs .nav-link:hover {
@@ -153,18 +157,16 @@
 
         <!-- Tabs content -->
         <div class="tab-content" id="ex-with-icons-content">
-            <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="ex-with-icons-tab-1">
+            <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="ex-with-icons-tab-1 ">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Left Column -->
-                    <div class="lg:col-span-2">
-                        <!-- Recent Activity -->
-                        <div class="bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                    <!-- <div class="lg:col-span-2">
+                        <div class="rounded-xl p-6 mb-8" style="background: var(--color-bg-secondary);">
                             <h2 class="text-xl font-bold mb-6 flex items-center">
                                 <i class="fas fa-history mr-3 text-indigo-400"></i> Recent Activity
                             </h2>
 
                             <div class="space-y-6">
-                                <!-- Activity Item -->
                                 <div class="flex space-x-4">
                                     <div class="flex-shrink-0">
                                         <div
@@ -186,7 +188,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Activity Item -->
                                 <div class="flex space-x-4">
                                     <div class="flex-shrink-0">
                                         <div
@@ -209,12 +210,12 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Right Column -->
                     <div>
                         <!-- About Section -->
-                        <div class="bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                        <div class="rounded-xl p-6 mb-8" style="background: var(--color-bg-secondary);">
                             <h2 class="text-xl font-bold mb-4 flex items-center">
                                 <i class="fas fa-user mr-3 text-indigo-400"></i> About
                             </h2>
@@ -248,40 +249,13 @@
                             </div>
                         </div>
 
-                        <!-- Channels Section -->
-                        <div class="bg-gray-800 rounded-xl shadow-lg p-6">
-                            <h2 class="text-xl font-bold mb-4 flex items-center">
-                                <i class="fas fa-users mr-3 text-indigo-400"></i> Channels
-                            </h2>
-                            <div class="space-y-3">
-                                {% for channel in user_profile.created_rooms.all %}
-                                <a href="#"
-                                    class="channel-card block bg-gray-700 hover:bg-gray-600 rounded-lg p-4 transition">
-                                    <div class="flex items-center space-x-3">
-                                        <img src="{{ channel.channel_picture.url }}" alt="{{ channel.name }}"
-                                            class="w-10 h-10 rounded-full">
-                                        <div>
-                                            <h3 class="font-medium">{{ channel.name }}</h3>
-                                            <p class="text-gray-400 text-sm">{{ channel.participants.count }} members
-                                            </p>
-                                        </div>
-                                    </div>
-                                </a>
-                                {% endfor %}
 
-                                {% if user_channels.count > 5 %}
-                                <button class="text-indigo-400 text-sm font-medium mt-2 hover:underline">
-                                    View all {{ user_channels.count }} channels →
-                                </button>
-                                {% endif %}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
             <div class="tab-pane fade" id="container" role="tabpanel" aria-labelledby="ex-with-icons-tab-2">
                 {% if user.userprofile.usercontainer %}
-                <div class="bg-gray-800 rounded-2xl shadow-xl p-8 space-y-6">
+                <div class="rounded-2xl p-8 space-y-6" style="background: var(--color-bg-secondary);">
                     <div class="flex items-center justify-between">
                         <h2 class="text-2xl font-semibold text-white flex items-center">
                             <i class="fas fa-box mr-3 text-indigo-400"></i> My Container
@@ -393,8 +367,35 @@
 
 
 
-            <div class="tab-pane fade" id="ex-with-icons-tabs-3" role="tabpanel" aria-labelledby="ex-with-icons-tab-3">
-                Tab 3 content
+            <div class="tab-pane fade" id="channels" role="tabpanel" aria-labelledby="channels-tab">
+                <!-- Channels Section -->
+                <div class="rounded-xl p-6" style="background: var(--color-bg-secondary);">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-users mr-3 text-indigo-400"></i> Channels
+                    </h2>
+                    <div class="space-y-3">
+                        {% for channel in user_profile.created_rooms.all %}
+                        <a href="#" class="channel-card block rounded-lg p-4 transition"
+                            style="background: var(--color-bg-secondary);">
+                            <div class="flex items-center space-x-3">
+                                <img src="{{ channel.channel_picture.url }}" alt="{{ channel.name }}"
+                                    class="w-10 h-10 rounded-full">
+                                <div>
+                                    <h3 class="font-medium">{{ channel.name }}</h3>
+                                    <p class="text-gray-400 text-sm">{{ channel.participants.count }} members
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+
+                        {% if user_channels.count > 5 %}
+                        <button class="text-indigo-400 text-sm font-medium mt-2 hover:underline">
+                            View all {{ user_channels.count }} channels →
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
         <!-- Tabs content -->
@@ -403,7 +404,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 py-6 mt-12">
+    <footer class="py-6 mt-12" style="background: var(--color-bg-secondary);">
         <div class="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">
             <p>© 2023 CodeCollab. All rights reserved.</p>
         </div>

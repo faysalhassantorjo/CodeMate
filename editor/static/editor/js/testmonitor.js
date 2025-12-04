@@ -69,10 +69,9 @@ function createEditor(userid, code_content) {
   }
 }
 
-const startat = document.body.dataset.startat; // e.g. "14:00"
-const endat = document.body.dataset.endat; // e.g. "16:00"
+const startat = document.body.dataset.startat;
+const endat = document.body.dataset.endat;
 
-// Convert time strings to Date objects (today's date)
 function toTodayTime(timeStr) {
   const now = new Date();
   const [hours, minutes] = timeStr.split(":").map(Number);
@@ -91,37 +90,36 @@ function toTodayTime(timeStr) {
 const sessionStartTime = toTodayTime(startat);
 const sessionEndTime = toTodayTime(endat);
 
-function updateSessionTime() {
-  const now = new Date();
-  const elapsedMs = now - sessionStartTime;
-  const remainingMs = sessionEndTime - now;
+// function updateSessionTime() {
+//   const now = new Date();
+//   const elapsedMs = now - sessionStartTime;
+//   const remainingMs = sessionEndTime - now;
 
-  const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
-  const remainingMin = Math.floor(remainingSeconds / 60);
-  const remainingSec = remainingSeconds % 60;
+//   const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+//   const remainingMin = Math.floor(remainingSeconds / 60);
+//   const remainingSec = remainingSeconds % 60;
 
-  sessionTimeEl.textContent = `Remaining: ${remainingMin
-    .toString()
-    .padStart(2, "0")}:${remainingSec.toString().padStart(2, "0")}`;
+//   sessionTimeEl.textContent = `Remaining: ${remainingMin
+//     .toString()
+//     .padStart(2, "0")}:${remainingSec.toString().padStart(2, "0")}`;
 
-  if (remainingMs <= 0) {
-    clearInterval(updateSessionTime);
-    // alert("Time is up! Test will now end.");
-  }
-}
-setInterval(updateSessionTime, 1000);
+//   if (remainingMs <= 0) {
+//     clearInterval(updateSessionTime);
+//     // alert("Time is up! Test will now end.");
+//   }
+// }
+// setInterval(updateSessionTime, 1000);
 
 function updateConnectionStatus(status, message) {
   const badge = connectionStatusEl.querySelector(".status-badge");
   badge.className = `status-badge status-${status}`;
   badge.innerHTML = `
-        <i class="fas ${
-          status === "connected"
-            ? "fa-check-circle"
-            : status === "disconnected"
-            ? "fa-times-circle"
-            : "fa-circle-notch fa-spin"
-        }"></i>
+        <i class="fas ${status === "connected"
+      ? "fa-check-circle"
+      : status === "disconnected"
+        ? "fa-times-circle"
+        : "fa-circle-notch fa-spin"
+    }"></i>
         <span>${message}</span>
       `;
   connectionIndicatorEl.textContent = message;
@@ -303,7 +301,7 @@ document
 
 // Initialize Monaco Editor and WebSocket
 require(["vs/editor/editor.main"], function () {
-  
+
   const staticEditorContainers = document.querySelectorAll('[id^="editor-"]');
   staticEditorContainers.forEach((container) => {
     const userId = container.id.replace("editor-", "");
@@ -327,6 +325,37 @@ require(["vs/editor/editor.main"], function () {
     updateConnectionStatus("connected", "Connected");
   };
 
+  socket.onclose = () => {
+    console.log("WebSocket disconnected from", socket.url);
+    updateConnectionStatus("disconnected", "Disconnected");
+  };
+
+  socket.onerror = (error) => {
+    console.error("WebSocket error:", error);
+    updateConnectionStatus("error", "Error");
+  };
+
+  const editorTimers = {}; // store timers for each user
+
+  function editorstatus(user_id) {
+    const editorElement = document.getElementById(`candidate-editor-${user_id}`);
+    if (!editorElement) return;
+
+    editorElement.style.backgroundColor = "#4ecdd1";
+
+    // Clear previous timer for this user
+    if (editorTimers[user_id]) {
+      clearTimeout(editorTimers[user_id]);
+    }
+
+    // Set new timer
+    editorTimers[user_id] = setTimeout(() => {
+      editorElement.style.backgroundColor = "";
+      delete editorTimers[user_id];
+    }, 2000);
+  }
+
+
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     const user_id = data.user_id;
@@ -339,6 +368,7 @@ require(["vs/editor/editor.main"], function () {
 
     if (staticEditorsMap[user_id]) {
       const model = staticEditorsMap[user_id].getModel();
+      editorstatus(user_id);
       model.applyEdits(
         data.changes.map((change) => ({
           range: new monaco.Range(
@@ -357,20 +387,18 @@ require(["vs/editor/editor.main"], function () {
     // If this user does not have a dynamic editor yet, create one
     if (!editorsMap[user_id]) {
       const col = document.createElement("div");
-      col.className = "col-lg-6 col-12";
-
-      const userColor = getUserColor(user_id);
-
+      col.className = "col-lg-6 col-12 candidate-editor p-1";
+      col.id = `candidate-editor-${user_id}`;
+      editorstatus(user_id);
       col.innerHTML = `
             <div class="editor-card">
               <div class="editor-header">
                 <div class="user-info">
-                  <div class="user-avatar" style="background-color: ${userColor}; overflow: hidden">
+                  <div class="user-avatar" style="overflow: hidden">
                     <img src="${user_profile}" height="30" alt="${user_name}">
                   </div>
                   <div class="user-details">
                     <h6>@${user_name}</h6>
-                    <small>JavaScript Editor</small>
                   </div>
                 </div>
                 <div class="editor-status">
@@ -403,7 +431,7 @@ require(["vs/editor/editor.main"], function () {
         try {
           const newEditor = monaco.editor.create(container, {
             ...editorConfig,
-          
+
             language: "python",
           });
 
@@ -412,8 +440,7 @@ require(["vs/editor/editor.main"], function () {
 
           // Update user count (static + dynamic editors)
           userCountEl.textContent =
-            Object.keys(staticEditorsMap).length +
-            Object.keys(editorsMap).length;
+            Object.keys(staticEditorsMap).length + Object.keys(editorsMap).length;
         } catch (error) {
           console.error("Failed to create dynamic editor:", error);
           loadingState.innerHTML = `
@@ -426,7 +453,18 @@ require(["vs/editor/editor.main"], function () {
       // Apply changes to existing dynamic editor
       const model = editorsMap[user_id].getModel();
       if (model) {
-        model.setValue(content || "");
+        model.applyEdits(
+          data.changes.map((change) => ({
+            range: new monaco.Range(
+              change.range.startLineNumber,
+              change.range.startColumn,
+              change.range.endLineNumber,
+              change.range.endColumn
+            ),
+            text: change.text,
+            forceMoveMarkers: true,
+          }))
+        );
       }
     }
   };

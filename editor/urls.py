@@ -36,5 +36,9 @@ urlpatterns = [
      path('available-lab-test/<str:channel_id>', view_availabe_lab_test, name='view_availabe_lab_test'),
      
      path('test-evaluate/', test_evaluate, name='test_evaluate'),
+
+
+
+     path('demo/<str:room_id>/', demo, name='demo'),
     
 ]

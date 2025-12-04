@@ -26,8 +26,8 @@
 
     <style>
         :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
             --bg-tertiary: #21262d;
             --border-color: #30363d;
             --text-primary: #f0f6fc;
@@ -425,8 +425,7 @@
         {% if lab_test.available %}
         <div class="row">
             <div class="col-lg-3" style="padding: 0;">
-                <div class="test-question"
-                    style="max-height: 90vh; overflow-y: auto; border-radius: 0; width: 100%; margin-left: 13px;">
+                <div class="test-question" style=" border-radius: 0; width: 100%; margin-left: 13px;">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 p-1"><i class="fa-solid fa-file-circle-question me-2"></i>Question</h6>
                         <button class="btn btn-sm btn-outline-secondary m-1" id="question_button">
@@ -434,8 +433,8 @@
                         </button>
                     </div>
 
-                    <div class="question-image " id="question_image">
-                        <div>
+                    <div class="question-image " id="question_image" style="max-height: 90vh; overflow-y: auto;">
+                        <div class="p-2 pl-1" style="font-size: 14px;">
                             {{lab_test.text_question | safe}}
                         </div>
                         <div style="border-radius: 6px; overflow: hidden;">
@@ -473,15 +472,16 @@
                         </div>
                         <div class="editor-controls">
 
-                            <div id="container_section" >
+                            <div id="container_section">
                                 {% if container_status == 'running' %}
                                 <i class="fa-solid fa-check text-success"></i>
                                 <span class="text-success">Running</span>
                                 {% elif container_status == 'exited' %}
                                 <button class="control-button" id="startContainerBtn">Start</button>
                                 {% else %}
-                                <i class="fa-solid fa-spinner fa-spin"></i>
-                                <span>Loading</span>
+                                <span class="text-danger">
+                                    No container
+                                </span>
                                 {% endif %}
 
                             </div>
@@ -509,7 +509,7 @@
                                                     container_section.innerHTML = `<i class="fa-solid fa-check text-success"></i>
                                                     <span class="text-success">Running</span>`;
                                                 } else {
-                                                    
+
                                                 }
                                             })
                                             .catch(err => {
@@ -622,7 +622,7 @@
                     <script>
                         const term = new Terminal({
                             theme: {
-                                background: '#0d1117', // Dark GitHub-like background
+                                background: '#1e1e1e', // Dark GitHub-like background
                                 foreground: '#ffffff', // Optional: text color
                                 cursor: '#ffffff',     // Optional: cursor color
                             }
@@ -654,7 +654,7 @@
             style="z-index: 1050; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);">
             <div class="rounded-4 p-4 shadow-lg text-center"
                 style="background: rgba(208, 89, 89, 0.85);  width: 90%; position: relative;">
-                <h2>No labtest Currently available : {{lab_test.available}}</h2>
+                <h2>No labtest Currently available</h2>
             </div>
 
         </div>
@@ -729,6 +729,10 @@
 
         const submitCodeButton = document.getElementById('submit_code');
 
+        window.addEventListener("beforeunload", function (e) {
+            e.preventDefault();
+            e.returnValue = "";
+        });
 
 
 
@@ -786,18 +790,9 @@
         require(['vs/editor/editor.main'], function () {
             // Create Monaco editor
 
-            monaco.editor.defineTheme('myCustomTheme', {
-                base: 'vs-dark', // or 'vs' for light theme
-                inherit: true,
-                rules: [],
-                colors: {
-                    'editor.background': '#0d1117' // your custom background color
-                }
-            });
-
             editor = monaco.editor.create(document.getElementById('monaco-editor'), {
                 language: 'python',
-                theme: 'myCustomTheme',
+                theme: 'vs-dark',
 
             });
 
@@ -872,7 +867,6 @@
             let previousCharCount = 0;
             let charDeltas = [];
             let timeLabels = [];
-            let timePassed = 0;
 
 
             submitCodeButton.addEventListener('click', function () {
@@ -913,32 +907,44 @@
                     });
             });
 
+
+            // const interval = setInterval(() => {
+            //     const currentCharCount = editor.getValue().length;
+            //     const typedThisInterval = currentCharCount - previousCharCount;
+            //     previousCharCount = currentCharCount;
+
+            //     charDeltas.push(typedThisInterval);
+            //     timeLabels.push(`${timePassed}s`);
+            //     timePassed += intervalSeconds;
+
+            //     console.log("time label and char deltas are", timeLabels, charDeltas)
+
+            //     if (timePassed >= sessionDurationSec) {
+            //         clearInterval(interval);
+            //         drawChart(timeLabels, charDeltas);
+            //     }
+            // }, intervalSeconds * 1000);
+
+
+
+
+            const start = new Date(testStartTimeStr);
+            const now = new Date();
+            let timePassed = Math.floor((now - start) / 1000);
             const intervalSeconds = 10;
 
-            const interval = setInterval(() => {
+            function updateSessionTime() {
+                const now = new Date();
+                let elapsed = Math.floor((now - start) / 1000);
+
+
                 const currentCharCount = editor.getValue().length;
                 const typedThisInterval = currentCharCount - previousCharCount;
                 previousCharCount = currentCharCount;
-
                 charDeltas.push(typedThisInterval);
                 timeLabels.push(`${timePassed}s`);
                 timePassed += intervalSeconds;
 
-                console.log("time label and char deltas are", timeLabels, charDeltas)
-
-                if (timePassed >= sessionDurationSec) {
-                    clearInterval(interval);
-                    drawChart(timeLabels, charDeltas);
-                }
-            }, intervalSeconds * 1000);
-
-
-
-
-            const start = new Date(testStartTimeStr);  // no need to manually parse
-            function updateSessionTime() {
-                const now = new Date();
-                let elapsed = Math.floor((now - start) / 1000);
 
                 if (elapsed < 0) elapsed = 0;
                 if (elapsed >= sessionDurationSec) {

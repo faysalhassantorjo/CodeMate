@@ -9,10 +9,10 @@ import redis
 
 # Replace with your Redis URL
 # redis_client = redis.Redis.from_url("redis://red-cuj40v0gph6c73fqc0ig:6379/0")
-redis_client = redis.Redis.from_url("redis://red-d4f1dg0gjchc73fj4kb0:6379")
+# redis_client = redis.Redis.from_url("redis://red-d4f1dg0gjchc73fj4kb0:6379")
 
 
-# redis_client = redis.StrictRedis(host='redis_server', port=6379,db=0)
+redis_client = redis.StrictRedis(host='redis_server', port=6379,db=0)
 # redis_client = redis.StrictRedis(host='127.0.0.1', port=6379,db=0)
 
 
@@ -21,6 +21,44 @@ try:
 except Exception as e:
     print(f"Error: {e}")
 
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+class YjsConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'yjs_{self.room_name}'
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    # CHANGE 1: Handle bytes_data, not text_data
+    async def receive(self, text_data=None, bytes_data=None):
+        if bytes_data:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'yjs_message',
+                    'message': bytes_data,
+                    'sender_channel_name': self.channel_name # CHANGE 2: Track who sent it
+                }
+            )
+
+    async def yjs_message(self, event):
+        # CHANGE 3: Prevent echoing back to the sender
+        if self.channel_name == event.get('sender_channel_name'):
+            return
+
+        # CHANGE 4: Send binary data back to the client
+        await self.send(bytes_data=event['message'])
 
 class CodeEditorConsumer(AsyncWebsocketConsumer):
     async def connect(self):

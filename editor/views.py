@@ -9,9 +9,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
 # Create your views here.
-# client = docker.from_env()
-client=None
+client = docker.from_env()
+# client=None
 
+@login_required(login_url='/login/')
 def channel(request,channel_id):
     channel = Channel.objects.get(id = channel_id)
     
@@ -790,7 +791,23 @@ def get_pasted_code(request):
            
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
+from django.contrib.auth.decorators import user_passes_test
 
+def is_teacher(user):
+    if user.groups.filter(name='Teacher').exists():
+        return True
+    return False
+
+def teacher_required(view_func):
+   
+    def wrapper(request, *args, **kwargs):
+        if not is_teacher(request.user):
+            return redirect('/')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@teacher_required
 def view_available_lab(request):
     
     channels = Channel.objects.filter(created_by__user = request.user)
@@ -826,6 +843,9 @@ def test_evaluate(request):
         return JsonResponse({'status': 'success'})
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
+
+def demo(request,room_id):
+    return render(request, 'editor/demo.html', {'room_id': room_id})
 
 
 

@@ -251,10 +251,18 @@
         Code Editors
       </h2>
 
+      <style>
+        .candidate-editor {
+          transition: background-color 0.4s ease;
+          border-radius: 10px;
+        }
+      </style>
       <div id="editors-wrapper" class="row g-3">
         <!-- Static Editors from Template -->
         {% for candidate in all_candidates %}
-        <div class="col-lg-6" id="candidate-editor-{{candidate.user.id}}">
+        <div class="col-lg-6 p-1 candidate-editor" id="candidate-editor-{{candidate.user.id}}">
+          <!-- style="background-color: #4ecdd1; border-radius: 10px;" -->
+
           <div class="editor-card">
             <div class="editor-header">
               <div class="user-info">
@@ -265,18 +273,20 @@
                   <h6>@{{candidate.user.username}}</h6>
                   <small>{{candidate.user.email}}</small>
                 </div>
-                 <div class="obtained_mark">
-                {% if candidate.marks is not None %}
-                <span>Marks: {{candidate.marks}} / 10 <span class="text-info" >{{candidate.marks_obtained_percentage}}%</span> </span>
-                {% else %}
-                <span class="badge bg-secondary">Not Evaluated</span>
-                {% endif %}
+                <div class="obtained_mark">
+                  {% if candidate.marks is not None %}
+                  <span>Marks: {{candidate.marks}} / 10 <span
+                      class="text-info">{{candidate.marks_obtained_percentage}}%</span> </span>
+                  {% else %}
+                  <span class="badge bg-secondary">Not Evaluated</span>
+                  {% endif %}
+                </div>
               </div>
-              </div>
-             
+
               <div class="editor-status">
 
-                <button onclick="toggleEvaluateSection('{{candidate.id}}')" style="background:none; border:none;cursor: pointer; color: #fff; text-decoration: dashed;">
+                <button onclick="toggleEvaluateSection('{{candidate.id}}')"
+                  style="background:none; border:none;cursor: pointer; color: #fff; text-decoration: dashed;">
                   Evaluate
                 </button>
 
@@ -286,18 +296,20 @@
 
                   <div class="bg-dark text-white p-4 rounded-3 shadow-lg" style="width: 800px;">
                     <form action="">
-                  
+
                       <div class="candidate_details">
                         <h5 class="mb-3">Evaluate:
-                           <span class="text-info">@{{candidate.user.username}}</span></h5>
+                          <span class="text-info">@{{candidate.user.username}}</span>
+                        </h5>
                       </div>
 
                       <div class="mb-3">
                         <label class="form-label">Commnet</label>
-                        <textarea rows="2" class="form-control" style="background: none; color: #fff;">{{candidate.teachers_remarks}}</textarea>
+                        <textarea rows="2" class="form-control"
+                          style="background: none; color: #fff;">{{candidate.teachers_remarks}}</textarea>
                       </div>
 
-                      <div class="mb-3" >
+                      <div class="mb-3">
                         <label class="form-label">Marks</label>
                         <input type="text" style="max-width: 100px;" class="form-control" value="{{candidate.marks}}">
                       </div>
@@ -482,7 +494,6 @@
               }
             });
 
-            // ✅ Only replace the inner content of the analysis result text container
             const resultText = document.getElementById('ai-analysis-result-text');
             resultText.innerHTML = html;
 
@@ -492,7 +503,6 @@
 
           function showAiAnalysic(candidate_id, ai_response) {
 
-            console.log('hello')
             document.getElementById('ai-analysis-result').classList.remove('d-none')
 
 
@@ -524,6 +534,7 @@
           }
         </script>
 
+        <!-- Pasted Code Detection -->
         <script>
           function getPastedCode(attempt_id) {
             fetch('/get-pasted-code/', {

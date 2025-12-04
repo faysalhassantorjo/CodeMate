@@ -166,6 +166,7 @@
                 }
               }
             </style>
+
             <div class="d-flex btnn flex-wrap">
               <button id="joinChannelBtn">
                 <i class="fas fa-door-open me-2 text-success"></i>Join Channel
@@ -176,10 +177,12 @@
                 <img src="{% static 'editor/icons/paper.png' %}" height="30" alt="monitor">
                 Lab test
               </button>
+              {% if teacher %}
               <button onclick="window.location.href='/view-available-lab/'">
                 <img src="{% static 'editor/icons/monitoring.png' %}" height="30" alt="monitor">
                 Lab
               </button>
+              {% endif %}
 
             </div>
           </div>
@@ -397,7 +400,7 @@
           </div>
         </div>
 
-        <div class="people-list-container p-3 mt-3 rounded"
+        <!-- <div class="people-list-container p-3 mt-3 rounded"
           style="background-color: var(--dark-bg); min-height: auto; max-height: 800px; overflow-y: auto;">
           <h3> Contacts </h3>
           <ul class="people-list">
@@ -416,7 +419,7 @@
             </a>
             {% endfor %}
           </ul>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>

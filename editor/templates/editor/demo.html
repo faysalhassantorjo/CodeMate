@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yjs + Monaco</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: sans-serif;
+        }
+
+        #editor {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+        }
+
+        /* Awareness/Cursor styles */
+        .yRemoteSelection {
+            background-color: rgb(250, 129, 0, .5);
+        }
+
+        .yRemoteSelectionHead {
+            position: absolute;
+            border-left: orange solid 2px;
+            border-top: orange solid 2px;
+            border-bottom: orange solid 2px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .yRemoteSelectionHead::after {
+            position: absolute;
+            content: ' ';
+            border: 3px solid orange;
+            border-radius: 4px;
+            left: -4px;
+            top: -5px;
+        }
+    </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "yjs": "https://esm.sh/yjs@13.6.14",
+        "y-websocket": "https://esm.sh/y-websocket@1.5.0",
+        "y-monaco": "https://esm.sh/y-monaco@0.1.5"
+      }
+    }
+    </script>
+</head>
+
+<body>
+    <h2>Yjs + Monaco Collaboration Demo</h2>
+    <div id="editor"></div>
+
+    <script type="module">
+        import * as Y from 'yjs';
+        import { WebsocketProvider } from 'y-websocket';
+        import { MonacoBinding } from 'y-monaco';
+
+        // Monaco Config
+        const requireConfig = {
+            paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }
+        };
+
+        // Load Monaco via AMD loader
+        const loaderScript = document.createElement('script');
+        loaderScript.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js';
+        document.body.appendChild(loaderScript);
+
+        loaderScript.onload = () => {
+            require.config(requireConfig);
+            require(['vs/editor/editor.main'], () => {
+
+                // 1. Create Monaco editor
+                const editor = monaco.editor.create(document.getElementById('editor'), {
+                    language: 'javascript',
+                    theme: 'vs-dark'
+                });
+
+                // 2. Create Yjs document
+                const ydoc = new Y.Doc();
+
+                // 3. Connect to a public demo server (Change this to your local server in production)
+                // Use a random room name to avoid conflicts with others testing
+                const room_id = "{{room_id}}"
+                const provider = new WebsocketProvider(
+                    'ws://127.0.0.1:8000/ws/yjs/' + room_id,
+                    ydoc
+                );
+
+
+
+                // 4. Bind Yjs text to Monaco
+                const yText = ydoc.getText('monaco');
+
+                const binding = new MonacoBinding(
+                    yText,
+                    editor.getModel(),
+                    new Set([editor]),
+                    provider.awareness
+                );
+
+                console.log(`Connected to room: ${room_id}`);
+            });
+        };
+    </script>
+</body>
+
+</html>

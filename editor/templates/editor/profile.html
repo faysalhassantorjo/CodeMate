@@ -63,10 +63,10 @@
             <div class="h-48 bg-gradient-to-r from-indigo-900 to-gray-900 relative">
                 <div class="absolute bottom-4 right-4">
                     {% if user_profile.user.id == request.user.id %}
-                    <button
+                    <a href="{% url 'profile_editor' request.user.id %}"
                         class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-camera mr-2"></i>Change Cover
-                    </button>
+                        <i class="fas fa-camera mr-2"></i>Edit Profile
+                    </a>
                     {% endif %}
                 </div>
             </div>

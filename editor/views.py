@@ -493,6 +493,39 @@ def profile(request, pk):
     
     return render(request, 'editor/profile.html',context)
 
+from .forms import UserProfileForm, UserForm
+@csrf_exempt
+def profile_editor(request, pk):
+    # Load profile
+    user_profile = UserProfile.objects.get(user_id=pk)
+    user = User.objects.get(id=pk)
+
+    # Only profile owner can edit
+    if request.user.id != pk:
+        return redirect('profile', pk=pk)
+
+    if request.method == 'POST':
+        # Bind BOTH forms
+        user_form = UserForm(request.POST, instance=user)
+        profile_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            return redirect('profile', pk=pk)
+
+    else:
+        user_form = UserForm(instance=user)
+        profile_form = UserProfileForm(instance=user_profile)
+
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'user_profile': user_profile,
+    }
+
+    return render(request, 'editor/profile_editor.html', context)
+
 
 def test_monitor(request,pk):
     

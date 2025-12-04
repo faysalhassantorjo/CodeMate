@@ -22,6 +22,7 @@ urlpatterns = [
     path('code-template/',code_template),
     path('create-file/',create_file ,name="create_file"),
     path('profile/<str:pk>', profile, name='profile'),
+    path('profile-edit/<int:pk>', profile_editor, name='profile_editor'),
     path('test-monitor/<str:pk>',test_monitor, name='test_monitor'),
     path('test-editor/<str:pk>',test_editor, name='test_editor'),
     path('manage-lab-test/',manage_lab_test, name='manage_lab_test'),

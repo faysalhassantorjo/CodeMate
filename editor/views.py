@@ -270,7 +270,7 @@ def create_container(request):
         
         # Run the container
         container = client.containers.run(
-            image="realtime_code_editor-environment:latest",
+            image="environment",
             detach=True,
             command="sleep infinity",
             name=f"user_{user.id}_container",

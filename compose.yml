@@ -1,5 +1,6 @@
 services:
   django:
+    image: django_app
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,14 +9,13 @@ services:
     # command: daphne -b 0.0.0.0 -p $PORT realtime_code_editor.asgi:application
     command: python manage.py runserver 0.0.0.0:8000
 
-
     # command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - ./staticfiles:/app/staticfiles
     ports:
-      - "8000:8000" 
+      - "8000:8000"
     depends_on:
       - redis
     environment:
@@ -30,6 +30,7 @@ services:
       - "6379:6379"
 
   celery:
+    image: celery_worker
     build:
       context: .
       dockerfile: Dockerfile
@@ -46,12 +47,12 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
 
   environment:
+    image: environment
     build:
       context: .
       dockerfile: Dockerfile.environment
     working_dir: /code_file
-    tty: true  
-
+    tty: true
   # nginx:
   #   image: nginx:alpine
   #   container_name: nginx_server

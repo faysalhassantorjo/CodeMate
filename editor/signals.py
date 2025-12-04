@@ -9,7 +9,7 @@ client = docker.from_env()
 def create_user_container(sender, instance, created, **kwargs):
     if created:
         container = client.containers.run(
-            "user-code-executor",  # Image name
+            "environment",  # Image name
             detach=True,
             name=f"user_{instance.id}_container",
             hostname=f"user_{instance.id}",

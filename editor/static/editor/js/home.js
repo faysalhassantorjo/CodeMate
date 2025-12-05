@@ -44,8 +44,14 @@ $(document).ready(function () {
 });
 
 const user = document.body.dataset.user;
-const userImage = document.body.dataset.userImage;
-const userId = document.body.dataset.userId;
+const userImage = document.body.dataset.userimage;
+const userId = document.body.dataset.userid;
+
+console.log(user);
+console.log(userImage);
+console.log(userId);
+console.log(document.body.dataset);
+
 // WebSocket for global chat
 const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 const chat_socket = new WebSocket(
@@ -122,8 +128,8 @@ function sendMessage() {
     JSON.stringify({
       message: messageText,
       sender: current_user,
-      userImage: "{{userprofile.imageURL}}",
-      user_id: "{{userprofile.id}}",
+      userImage: userImage,
+      user_id: userId,
       time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     })
   );

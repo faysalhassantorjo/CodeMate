@@ -25,7 +25,8 @@
   <link rel="stylesheet" href="{% static 'editor/css/home.css' %}">
 </head>
 
-<body data-user="{{request.user}}" data-userImage="{{userprofile.imageURL}}" data-userId="{{userprofile.id}}">
+<body data-userImage="{{userprofile.imageURL}}" data-userId="{{request.user.userprofile.id}}"
+  data-user="{{request.user}}">
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
@@ -393,7 +394,7 @@
             <div id="chatForm" class="d-flex align-items-center">
               <input type="text" id="messageInput" class="form-control me-2" placeholder="Type a message..."
                 aria-label="Message input">
-              <button type="button" class="btn" id="send_btn" data-user="{{userprofile}}">
+              <button type="button" onclick="sendMessage()" class="btn" id="send_btn" data-user="{{userprofile}}">
                 <i class="fas fa-paper-plane"></i>
               </button>
             </div>
@@ -431,9 +432,10 @@
 
   <!-- MDB -->
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/9.0.0/mdb.umd.min.js"></script>
-</body>
-<script src="{% static 'editor/js/home.js' %}">
+  <script src="{% static 'editor/js/home.js' %}">
+  </script>
 
-</script>
+</body>
+
 
 </html>

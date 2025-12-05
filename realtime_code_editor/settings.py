@@ -98,7 +98,7 @@ DATABASES = {
         'NAME': 'codematedb',
         'USER': 'codemate',
         'PASSWORD': 'codemate1234',
-        'HOST': 'postgres',
+        'HOST': '103.174.51.206',
         'PORT': '5432',
     }
 }

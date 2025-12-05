@@ -25,9 +25,9 @@ from django.http import HttpResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('editor.urls')),
-    path('blog/', include('blog.urls')),
-    path('api/', include('api.urls')),
+    # path('', include('editor.urls')),
+    # path('blog/', include('blog.urls')),
+    # path('api/', include('api.urls')),
 
 ]
 if settings.DEBUG:

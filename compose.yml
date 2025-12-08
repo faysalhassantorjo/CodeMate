@@ -21,9 +21,9 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - DOCKER_HOST=unix:///var/run/docker.sock
-      - POSTGRES_DB=mydb
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=codematedb
+      - POSTGRES_USER=codemate
+      - POSTGRES_PASSWORD=codemate1234
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
 
@@ -34,7 +34,7 @@ services:
       - "6379:6379"
 
   celery:
-    image: celery_worker
+    image: django_app
     build:
       context: .
       dockerfile: Dockerfile

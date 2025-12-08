@@ -358,16 +358,16 @@ class GlobalChat(AsyncWebsocketConsumer):
         )
         await self.accept()
         
-        await self.channel_layer.group_send( 
-            self.room_group_name,
-            {
-            'type':'send.global',
-            "message": f"{user} is connected!",
-            'sender':"Admin",
-            "time":now 
-            } 
+        # await self.channel_layer.group_send( 
+        #     self.room_group_name,
+        #     {
+        #     'type':'send.global',
+        #     "message": f"{user} is connected!",
+        #     'sender':"Admin",
+        #     "time":now 
+        #     } 
             
-        )
+        # )
 
     async def disconnect(self, close_code):
         pass
